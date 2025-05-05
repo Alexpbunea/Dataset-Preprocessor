@@ -1,113 +1,224 @@
 # -*- coding: utf-8 -*-
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QMenuBar, QPushButton,
-    QSizePolicy, QStatusBar, QWidget, QVBoxLayout, QSpacerItem, QLabel
-)
+from PySide6.QtCore import QCoreApplication, Qt
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtWidgets import QMainWindow, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget, QHBoxLayout, QFileDialog
 
-background_image = "./AppUi/Images/sky_image.jpg"
 
 class Ui_initial_phase(object):
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(800, 600)
-        MainWindow.setMinimumSize(400, 300)
-
+        MainWindow.resize(900, 600)
+        MainWindow.setMinimumSize(600, 400)
+        
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
-
-        # Layout principal
-        self.verticalLayout = QVBoxLayout(self.centralwidget)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout.setSpacing(0)
-
-        # Fondo de imagen
-        self.background_label = QLabel(self.centralwidget)
-        self.background_label.setObjectName("background_label")
-        self.background_label.setScaledContents(True)
-        self.background_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.verticalLayout.addWidget(self.background_label)
-        self.background_label.setPixmap(QPixmap(background_image))
-
-        # Layout superpuesto para elementos
-        self.overlay_layout = QVBoxLayout(self.background_label)
-        self.overlay_layout.setContentsMargins(20, 20, 20, 20)
         
-        # Label Welcome
-        self.welcome_label = QLabel("Insert your dataset please", self.background_label)
-        self.welcome_label.setAlignment(Qt.AlignCenter)
-        self.welcome_label.setStyleSheet("color: white;")
-        self.overlay_layout.addWidget(self.welcome_label, 0.5)  # 1/4 del espacio
+        self.verticalLayout = QVBoxLayout(self.centralwidget)
+        self.verticalLayout.setContentsMargins(20, 20, 20, 20)
+        self.verticalLayout.setSpacing(20)
 
-        # Espaciador flexible
-        self.overlay_layout.addStretch(2)  # 2/4 del espacio
+        self.title_label = QLabel("Dataset Preprocessor", self.centralwidget)
+        self.subtitle_label = QLabel("Efficiently prepare and manage your datasets", self.centralwidget)
+        self.pushButton = QPushButton("Start Processing", self.centralwidget)
 
-        # Botón
-        self.pushButton = QPushButton("Continue", self.background_label)
-        self.pushButton.setStyleSheet("""
-            QPushButton {
-                border: 2px solid white;
-                border-radius: 5px;
-                background-color: transparent;
-                color: white;
-                min-width: 120px;
-                max-width: 180px;
-                min-height: 35px;
-                padding: 8px;
+        self._setup_widget_properties()
+        self._setup_layout()
+        self.setup_styles()
+        
+        MainWindow.setCentralWidget(self.centralwidget)
+        self._install_resize_event()
+
+    def _setup_widget_properties(self):
+        self.title_label.setAlignment(Qt.AlignCenter)
+        self.subtitle_label.setAlignment(Qt.AlignCenter)
+        self.pushButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+
+    def _setup_layout(self):
+        self.verticalLayout.addWidget(self.title_label)
+        self.verticalLayout.addWidget(self.subtitle_label)
+        
+        self.verticalLayout.addStretch(1)
+        self._setup_file_drop_area()
+        self.verticalLayout.addStretch(1)
+        
+        self.file_status = QLabel("")
+        self.file_status.setAlignment(Qt.AlignCenter)
+        self.verticalLayout.addWidget(self.file_status)
+        
+        self.verticalLayout.addWidget(self.pushButton, 0, Qt.AlignCenter)
+        self.verticalLayout.addSpacing(5)
+
+    def _setup_file_drop_area(self):
+        self.drop_container = QWidget()
+        self.drop_container.setFixedSize(300, 150)
+        self.drop_container.setStyleSheet("""
+            QWidget {
+                background-color: #ffffff;
+                border: 2px dashed #0078d7;
+                border-radius: 8px;
             }
-            QPushButton:hover {
-                background-color: rgba(255, 255, 255, 30);
+            QWidget:hover {
+                background-color: #f0f6ff;
+                border: 2px dashed #005a9e;
+            }
+            QWidget[valid_file="true"] {
+                border: 2px solid #2ecc71;
+                background-color: #f0fff4;
             }
         """)
-        self.pushButton.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.overlay_layout.addWidget(self.pushButton, 1, Qt.AlignHCenter)  # 1/4 del espacio
 
-        MainWindow.setCentralWidget(self.centralwidget)
+        drop_layout = QVBoxLayout(self.drop_container)
+        drop_layout.setContentsMargins(15, 15, 15, 15)
+        drop_layout.setSpacing(10)
         
-        # Configurar fuente responsive
-        self._install_resize_event()
+        self.drop_icon = QLabel()
+        self.drop_icon.setPixmap(QIcon(":/icons/upload.svg").pixmap(48, 48))
+        self.drop_icon.setAlignment(Qt.AlignCenter)
+        
+        self.drop_text = QLabel("Throw your dataset in here\n")
+        self.drop_text.setAlignment(Qt.AlignCenter)
+        self.drop_text.setStyleSheet("""
+            QLabel {
+                color: #555555;
+                font-size: 14px;
+            }
+        """)
+        
+        self.browse_btn = QPushButton("Select dataset")
+        self.browse_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e6f1ff;
+                color: #0078d7;
+                border: 1px solid #0078d7;
+                border-radius: 4px;
+                padding: 6px 16px;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #d0e3ff;
+            }
+        """)
+        self.browse_btn.clicked.connect(self._open_file_dialog)
+        
+        drop_layout.addStretch()
+        drop_layout.addWidget(self.drop_icon)
+        drop_layout.addWidget(self.drop_text)
+        drop_layout.addWidget(self.browse_btn, 0, Qt.AlignCenter)
+        drop_layout.addStretch()
+        
+        self.verticalLayout.addWidget(self.drop_container, 0, Qt.AlignCenter)
+
+    def _open_file_dialog(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.MainWindow,
+            "Select file",
+            "",
+            "Data files (*.csv *.xlsx *.json);;All files (*)"
+        )
+        if file_path:
+            self._handle_file(file_path)
+
+    def _handle_file(self, file_path):
+        self.drop_container.setProperty("valid_file", "true")
+        self.drop_container.style().polish(self.drop_container)
+        
+        file_name = file_path.split('/')[-1]
+        self.file_status.setText(f"Dataset loaded: {file_name}")
+        self.file_status.setStyleSheet("""
+            QLabel {
+                color: #2ecc71;
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
+
+        file_extension = file_path.split('.')[-1].lower()
+        if file_extension == "csv":
+            icon_path = "./AppUi/icons/csv_icon.png"
+        elif file_extension in ["xlsx", "xls"]:
+            icon_path = "./AppUi/icons/excel_icon.png"
+        elif file_extension == "json":
+            icon_path = "./AppUi/icons/json_icon.png"
+        else:
+            icon_path = "./AppUi/icons/default_file_icon.png"
+
+        pixmap = QPixmap(icon_path).scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.drop_icon.setPixmap(pixmap)
+        self.drop_text.setText("File ready for processing")
+
+        print("Dataset detected:", file_path)
+
+    def setup_styles(self, title_size=36, subtitle_size=18, button_size=16):
+        colors = {
+            'background': '#f5f5f5',
+            'title': '#333333',
+            'subtitle': '#555555',
+            'button': '#0078d7',
+            'button_hover': '#005a9e',
+            'text_white': 'white'
+        }
+
+        self.centralwidget.setStyleSheet(f"""
+            QWidget {{
+                background-color: {colors['background']};
+            }}
+        """)
+
+        title_style = f"""
+            QLabel {{
+                color: {colors['title']};
+                font-size: {title_size}px;
+                font-weight: bold;
+            }}
+        """
+
+        subtitle_style = f"""
+            QLabel {{
+                color: {colors['subtitle']};
+                font-size: {subtitle_size}px;
+            }}
+        """
+
+        button_style = f"""
+            QPushButton {{
+                background-color: {colors['button']};
+                color: {colors['text_white']};
+                font-size: {button_size}px;
+                font-weight: bold;
+                border: none;
+                border-radius: 5px;
+                padding: {max(8, int(button_size * 0.5))}px {max(20, int(button_size * 1.5))}px;
+                min-width: 200px;
+            }}
+            QPushButton:hover {{
+                background-color: {colors['button_hover']};
+            }}
+        """
+
+        self.title_label.setStyleSheet(title_style)
+        self.subtitle_label.setStyleSheet(subtitle_style)
+        self.pushButton.setStyleSheet(button_style)
 
     def _install_resize_event(self):
         original_resize_event = self.MainWindow.resizeEvent
-        
+
         def new_resize_event(event):
-            # Ajustar tamaño de fuentes
-            new_size = int(self.MainWindow.height() * 0.05)
-            self.welcome_label.setStyleSheet(f"""
-                color: white;
-                font-size: {new_size}px;
-                font-weight: bold;
-            """)
+            new_title_size = int(self.MainWindow.height() * 0.06)
+            new_subtitle_size = int(self.MainWindow.height() * 0.03)
+            new_button_size = int(self.MainWindow.height() * 0.025)
+
+            self.setup_styles(
+                title_size=new_title_size,
+                subtitle_size=new_subtitle_size,
+                button_size=new_button_size
+            )
             
-            btn_size = int(self.MainWindow.height() * 0.025)
-            self.pushButton.setStyleSheet(f"""
-                QPushButton {{
-                    border: 2px solid white;
-                    border-radius: 5px;
-                    background-color: transparent;
-                    color: white;
-                    font-size: {btn_size}px;
-                    min-width: {int(self.MainWindow.width()//5)}px;  
-                    max-width: {int(self.MainWindow.width()//2.5)}px;  
-                    min-height: {int(self.MainWindow.height()//18)}px;  
-                    padding: {max(5, int(btn_size*0.4))}px;  
-                }}
-                QPushButton:hover {{
-                    background-color: rgba(255, 255, 255, 30);
-                }}
-            """)
             original_resize_event(event)
-            
+
         self.MainWindow.resizeEvent = new_resize_event
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocesor", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocessor", None))
