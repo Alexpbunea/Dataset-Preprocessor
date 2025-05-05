@@ -1,8 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import os
+import sys
 from PySide6.QtCore import QCoreApplication, Qt
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QMainWindow, QLabel, QPushButton, QSizePolicy, QVBoxLayout, QWidget, QHBoxLayout, QFileDialog
+
+
+
+def resource_path(relative_path):
+    """ Get the absolute path to a resource, works for dev and packaged apps. """
+    if getattr(sys, 'frozen', False):  # If running as a PyInstaller bundle
+        base_path = sys._MEIPASS
+    else:  # If running in a normal Python environment
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
 
 
 class Ui_initial_phase(object):
@@ -75,7 +88,8 @@ class Ui_initial_phase(object):
         drop_layout.setSpacing(10)
         
         self.drop_icon = QLabel()
-        self.drop_icon.setPixmap(QIcon(":/icons/upload.svg").pixmap(48, 48))
+        #self.drop_icon.setPixmap(QIcon(":/icons/upload.svg").pixmap(48, 48))
+        #self.drop_icon.setPixmap(QIcon.fromTheme("document-open").pixmap(48, 48))
         self.drop_icon.setAlignment(Qt.AlignCenter)
         
         self.drop_text = QLabel("Throw your dataset in here\n")
@@ -116,7 +130,7 @@ class Ui_initial_phase(object):
             self.MainWindow,
             "Select file",
             "",
-            "Data files (*.csv *.xlsx *.json);;All files (*)"
+            "Data files (*.csv *.xlsx *.json *.xls *jsonl)"
         )
         if file_path:
             self._handle_file(file_path)
@@ -137,13 +151,13 @@ class Ui_initial_phase(object):
 
         file_extension = file_path.split('.')[-1].lower()
         if file_extension == "csv":
-            icon_path = "./AppUi/icons/csv_icon.png"
+            icon_path = resource_path("./AppUi/icons/csv_icon.png")
         elif file_extension in ["xlsx", "xls"]:
-            icon_path = "./AppUi/icons/excel_icon.png"
+            icon_path = resource_path("./AppUi/icons/excel_icon.png")
         elif file_extension == "json":
-            icon_path = "./AppUi/icons/json_icon.png"
+            icon_path = resource_path("./AppUi/icons/json_icon.png")
         else:
-            icon_path = "./AppUi/icons/default_file_icon.png"
+            icon_path = resource_path("./AppUi/icons/default_file_icon.png")
 
         pixmap = QPixmap(icon_path).scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.drop_icon.setPixmap(pixmap)
