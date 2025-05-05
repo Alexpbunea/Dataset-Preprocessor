@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 
 background_image = "./AppUi/Images/sky_image.jpg"
 
-class Ui_initial_phase(object):
+class Ui_final_window(object):
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():
@@ -42,11 +42,11 @@ class Ui_initial_phase(object):
         self.overlay_layout = QVBoxLayout(self.background_label)
         self.overlay_layout.setContentsMargins(20, 20, 20, 20)
         
-        # Label Welcome
-        self.welcome_label = QLabel("Insert your dataset please", self.background_label)
-        self.welcome_label.setAlignment(Qt.AlignCenter)
-        self.welcome_label.setStyleSheet("color: white;")
-        self.overlay_layout.addWidget(self.welcome_label, 0.5)  # 1/4 del espacio
+        # Label final window
+        self.final_window = QLabel("Finished", self.background_label)
+        self.final_window.setAlignment(Qt.AlignCenter)
+        self.final_window.setStyleSheet("color: white;")
+        self.overlay_layout.addWidget(self.final_window, 0.5)  # 1/4 del espacio
 
         # Espaciador flexible
         self.overlay_layout.addStretch(2)  # 2/4 del espacio
@@ -82,7 +82,7 @@ class Ui_initial_phase(object):
         def new_resize_event(event):
             # Ajustar tamaño de fuentes
             new_size = int(self.MainWindow.height() * 0.05)
-            self.welcome_label.setStyleSheet(f"""
+            self.final_window.setStyleSheet(f"""
                 color: white;
                 font-size: {new_size}px;
                 font-weight: bold;
