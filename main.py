@@ -54,12 +54,24 @@ class MainController:
 
         # Conectar señales
         self.initial_ui.pushButton.clicked.connect(self.show_cleaning)
+
         self.cleaning_ui.pushButton.clicked.connect(self.show_imputation)
+        self.cleaning_ui.pushButton2.clicked.connect(self.show_initial)
+        
         self.imputation_ui.pushButton.clicked.connect(self.show_transformation)
+        self.imputation_ui.pushButton2.clicked.connect(self.show_cleaning)
+        
         self.transformation_ui.pushButton.clicked.connect(self.show_data_splitting)
+        self.transformation_ui.pushButton2.clicked.connect(self.show_imputation)
+        
         self.data_splitting_ui.pushButton.clicked.connect(self.show_comparison)
+        self.data_splitting_ui.pushButton2.clicked.connect(self.show_transformation)
+        
         self.comparison_ui.pushButton.clicked.connect(self.show_final)
-        self.final_ui.pushButton.clicked.connect(self.show_initial)  # Asumiendo un botón de retorno
+        self.comparison_ui.pushButton2.clicked.connect(self.show_data_splitting)
+
+        self.final_ui.pushButton.clicked.connect(self.app.quit)
+        self.final_ui.pushButton2.clicked.connect(self.show_comparison)
 
     def show_initial(self):
         self.stacked_widget.setCurrentIndex(0)
