@@ -19,6 +19,11 @@ def resource_path(relative_path):
 
 
 class Ui_initial_phase(object):
+    def __init__(self):
+        self.file_path = None
+        self.file_name = None
+        
+
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():
@@ -133,14 +138,15 @@ class Ui_initial_phase(object):
             "Data files (*.csv *.xlsx *.json *.xls *jsonl)"
         )
         if file_path:
+            self.file_path = file_path
             self._handle_file(file_path)
 
     def _handle_file(self, file_path):
         self.drop_container.setProperty("valid_file", "true")
         self.drop_container.style().polish(self.drop_container)
         
-        file_name = file_path.split('/')[-1]
-        self.file_status.setText(f"Dataset loaded: {file_name}")
+        self.file_name = file_path.split('/')[-1]
+        self.file_status.setText(f"Dataset loaded: {self.file_name}")
         self.file_status.setStyleSheet("""
             QLabel {
                 color: #2ecc71;
@@ -151,13 +157,13 @@ class Ui_initial_phase(object):
 
         file_extension = file_path.split('.')[-1].lower()
         if file_extension == "csv":
-            icon_path = resource_path("./AppUi/icons/csv_icon.png")
+            icon_path = resource_path("./src/AppUi/icons/csv_icon.png")
         elif file_extension in ["xlsx", "xls"]:
-            icon_path = resource_path("./AppUi/icons/excel_icon.png")
+            icon_path = resource_path("./src/AppUi/icons/excel_icon.png")
         elif file_extension == "json":
-            icon_path = resource_path("./AppUi/icons/json_icon.png")
+            icon_path = resource_path("./src/AppUi/icons/json_icon.png")
         else:
-            icon_path = resource_path("./AppUi/icons/default_file_icon.png")
+            icon_path = resource_path("./src/AppUi/icons/default_file_icon.png")
 
         pixmap = QPixmap(icon_path).scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.drop_icon.setPixmap(pixmap)
