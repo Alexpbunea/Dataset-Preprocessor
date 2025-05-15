@@ -10,6 +10,7 @@ from src.AppUi.transformation_phase import *
 from src.AppUi.data_splitting_phase import *
 from src.AppUi.comparison_phase import *
 from src.AppUi.final_window import *
+from src.utils import *
 
 class MainController:
     def __init__(self):
@@ -134,6 +135,9 @@ class MainController:
                 
                 if hasattr(self.preview_ui, 'populate_table'):
                     self.preview_ui.populate_table(self.df_spark)
+                    self.cleaning_ui.populate_table(self.df_spark)
+                    self.cleaning_ui.setup_connections(self.df_spark)
+                    self.cleaning_ui.apply_null_filter(self.df_spark)
 
             except Exception as e:
                 print(f"[ERROR]: When trying to load the dataset with Spark: {e}")
