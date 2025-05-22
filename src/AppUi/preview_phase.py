@@ -149,8 +149,8 @@ class Ui_preview_phase(object):
 
 
     def populate_table(self, dataframe):
-            """Fill the table with data from a Spark DataFrame."""
-            self.utils.dataframe = dataframe
-            self.utils.populate_table()
+        """Fill the table with data from a Spark DataFrame."""
+        self.utils.dataframe = dataframe
+        self.utils.populate_table(50, 1000)
         
 

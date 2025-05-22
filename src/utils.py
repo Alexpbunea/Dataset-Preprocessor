@@ -3,6 +3,8 @@
 import os
 import sys
 from PySide6.QtCore import QCoreApplication, Qt
+from pyspark.sql import functions as F
+from PySide6.QtGui import QColor
 from PySide6.QtGui import QIcon, QPixmap # QIcon, QPixmap not used in this specific UI class directly
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QPushButton, QSizePolicy, QVBoxLayout, 
@@ -13,6 +15,7 @@ from PySide6.QtWidgets import (
 class Utils:
     def __init__(self, dataframe = None, centralwidget = None, title = None, subtitle = None, pushButton = None, pushButton2 = None, pushButton3 = None, table = None, scroll_area = None):
         self.dataframe = dataframe
+        self.dataframe_original = dataframe
         self.centralwidget = centralwidget
 
 
@@ -27,7 +30,9 @@ class Utils:
         # Maximum character length for cell text
         self.max_cell_text_length = 0
 
-    def populate_table(self, lenght = 50):
+    def populate_table(self, lenght = 50, rows = 500, dataframe = None):
+        if dataframe is not None:
+            self.dataframe = dataframe
         self.max_cell_text_length = lenght
         """Fill the table with data from a Spark DataFrame."""
         if self.dataframe is None or len(self.dataframe.columns) == 0:
@@ -37,7 +42,7 @@ class Utils:
             return
         
         columns = self.dataframe.columns
-        rows = self.dataframe.limit(500).collect()
+        rows = self.dataframe.limit(rows).collect()
 
         # Improves performance by disabling updates while populating the table
         self.table.setUpdatesEnabled(False)
@@ -84,6 +89,7 @@ class Utils:
         )
 
         return self.table, self.scroll_area
+    
     
 
     def setup_styles(self, title_size=36, subtitle_size=18, button_size=14, base_font_size=12): 

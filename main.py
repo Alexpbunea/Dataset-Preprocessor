@@ -31,7 +31,8 @@ class MainController:
             .appName("Dataset Preprocessor") \
             .getOrCreate()
         
-        
+        # Initialize cleaning_logic 
+        self.cleaning_logic = None
         
         # Initializing the stacked widget
         self.stacked_widget = QStackedWidget()
@@ -115,9 +116,13 @@ class MainController:
 
     def show_cleaning(self):
         self.stacked_widget.setCurrentIndex(2)
-        # Make sure to apply filtering each time we switch to this window
-        #if self.df_spark is not None:
-        #    self.cleaning_ui.apply_null_filter(self.df_spark)
+        # Set reference to cleaning_logic in the UI
+        if hasattr(self.cleaning_ui, 'cleaning_logic'):
+            self.cleaning_ui.cleaning_logic = self.cleaning_logic
+        
+        # Make sure to apply sorting if the user has changed the sort option
+        if hasattr(self.cleaning_ui, 'sort_table_by_nulls'):
+            self.cleaning_ui.sort_table_by_nulls()
 
     def show_imputation(self):
         self.stacked_widget.setCurrentIndex(3)
@@ -152,8 +157,10 @@ class MainController:
                 if hasattr(self.preview_ui, 'populate_table'):
                     self.preview_ui.populate_table(self.df_spark)
                     self.cleaning_ui.populate_table(self.df_spark)
-                    #self.cleaning_ui.setup_connections(self.df_spark)
-                    #self.cleaning_ui.apply_null_filter(self.df_spark)
+                    
+                    # Set reference to cleaning_logic in the UI
+                    if hasattr(self.cleaning_ui, 'cleaning_logic'):
+                        self.cleaning_ui.cleaning_logic = self.cleaning_logic
 
             except Exception as e:
                 print(f"[ERROR]: When trying to load the dataset with Spark: {e}")

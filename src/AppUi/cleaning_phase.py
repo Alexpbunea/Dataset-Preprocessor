@@ -15,9 +15,9 @@ from src.utils import *
 
 def resource_path(relative_path):
     """ Get the absolute path to a resource, works for dev and packaged apps. """
-    if getattr(sys, 'frozen', False):  # If running as a PyInstaller bundle
+    if getattr(sys, 'frozen', False):  
         base_path = sys._MEIPASS
-    else:  # If running in a normal Python environment
+    else: 
         base_path = os.path.abspath(".")
     
     return os.path.join(base_path, relative_path)
@@ -30,6 +30,9 @@ class Ui_cleaning_phase(object):
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(900, 600)
         MainWindow.setMinimumSize(600, 400)
+        
+        # Initialize cleaning_logic reference
+        self.cleaning_logic = None
         
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
@@ -63,6 +66,9 @@ class Ui_cleaning_phase(object):
         
         self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, self.pushButton3, self.table, self.scroll_area)
         self.setup_styles()
+        
+        # Connect sort_combo change event to sort_table_by_nulls function
+        self.sort_combo.currentIndexChanged.connect(self.sort_table_by_nulls)
         
         MainWindow.setCentralWidget(self.centralwidget)
         self._install_resize_event()
@@ -145,6 +151,89 @@ class Ui_cleaning_phase(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocessor", None))
 
 
+    def sort_table_by_nulls(self):
+        """
+        Sort the table based on the number of nulls and the selected sort option.
+        If 'Columns' is selected, sort from left to right (reorder columns).
+        If 'Rows' is selected, sort from top to bottom (reorder rows).
+        """
+        if not hasattr(self.utils, 'dataframe') or not self.cleaning_logic:
+            print("[INFO] No data available to sort")
+            return
+            
+        # Get the sort option
+        sort_option = self.sort_combo.currentText()
+        
+        try:
+            # Calculate null counts using the cleaning class
+            column_null_counts, row_null_counts = self.cleaning_logic.calculate_nulls()
+            
+            # Convert to Python format for easier sorting
+            if sort_option == "Columns":
+                # Sort columns by null counts (left to right = highest to lowest nulls)
+                column_nulls_dict = {}
+                column_data = column_null_counts.collect()[0]
+                
+                for col in self.utils.dataframe.columns:
+                    column_nulls_dict[col] = column_data[col]
+                
+                # Sort columns by number of nulls (descending)
+                sorted_columns = sorted(column_nulls_dict.items(), key=lambda x: x[1], reverse=True)
+                
+                # Get the sorted column names
+                sorted_column_names = [col[0] for col in sorted_columns]
+                
+                # Create a new dataframe with reordered columns - only using select to avoid memory issues
+                sorted_df = self.utils.dataframe.select(sorted_column_names)
+                
+                # Update the dataframe reference first, then populate
+                #self.utils.dataframe = sorted_df
+                self.utils.populate_table(50, 200, sorted_df)
+                
+            else:  # "Rows" option
+                # Get row indices sorted by null counts (most nulls first)
+                try:
+                    # More memory-efficient approach: Add row numbers to the dataframe with null counts
+                    from pyspark.sql.window import Window
+                    from pyspark.sql.functions import row_number, col as spark_col
+
+                    # Join original dataframe with null counts
+                    # First create a monotonically increasing ID in both dataframes
+                    from pyspark.sql.functions import monotonically_increasing_id
+                    df_with_id = self.utils.dataframe.withColumn("_row_id", monotonically_increasing_id())
+                    null_counts_with_id = row_null_counts.withColumn("_row_id", monotonically_increasing_id())
+                    
+                    # Join the dataframes
+                    combined_df = df_with_id.join(
+                        null_counts_with_id, 
+                        on="_row_id"
+                    )
+                    
+                    # Sort by null counts
+                    sorted_df = combined_df.orderBy(spark_col("null_count").desc())
+                    
+                    # Drop the temporary columns
+                    sorted_df = sorted_df.drop("_row_id", "null_count")
+                    
+                    # Update reference and populate table
+                    #self.utils.dataframe = sorted_df
+                    self.utils.populate_table(50, 200, sorted_df)
+                    
+                except Exception as e:
+                    print(f"[ERROR] Row sorting failed with error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+                    # Fallback method if the above fails
+                    print("[INFO] Using fallback method to sort rows")
+                    self.utils.populate_table(50, 100)
+                
+            print(f"[INFO] Table sorted by {sort_option} based on null counts")
+                
+        except Exception as e:
+            print(f"[ERROR] Error sorting table: {e}")
+            import traceback
+            traceback.print_exc()
 
 
     """
@@ -195,5 +284,5 @@ class Ui_cleaning_phase(object):
     def populate_table(self, dataframe):
         """Fill the table with data from a Spark DataFrame and highlight null values."""
         self.utils.dataframe = dataframe
-        self.utils.populate_table()
+        self.utils.populate_table(50, 200)
 
