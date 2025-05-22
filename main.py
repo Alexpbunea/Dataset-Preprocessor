@@ -105,7 +105,10 @@ class MainController:
 
     def show_cleaning(self):
         self.stacked_widget.setCurrentIndex(2)
-    
+        # Make sure to apply filtering each time we switch to this window
+        #if self.df_spark is not None:
+        #    self.cleaning_ui.apply_null_filter(self.df_spark)
+
     def show_imputation(self):
         self.stacked_widget.setCurrentIndex(3)
 
@@ -130,14 +133,15 @@ class MainController:
         file_name = self.initial_ui.file_name
         if file_path:
             try:
-                self.df_spark = self.spark.read.option("header", "true").csv(file_path, inferSchema=True)
+                self.df_spark = self.spark.read.option("header", "true").csv(file_path, inferSchema=True).cache()
+                self.df_spark.count()
                 print(f"[INFO]: Dataset loaded correctly in Spark: {file_name}")
                 
                 if hasattr(self.preview_ui, 'populate_table'):
                     self.preview_ui.populate_table(self.df_spark)
                     self.cleaning_ui.populate_table(self.df_spark)
-                    self.cleaning_ui.setup_connections(self.df_spark)
-                    self.cleaning_ui.apply_null_filter(self.df_spark)
+                    #self.cleaning_ui.setup_connections(self.df_spark)
+                    #self.cleaning_ui.apply_null_filter(self.df_spark)
 
             except Exception as e:
                 print(f"[ERROR]: When trying to load the dataset with Spark: {e}")

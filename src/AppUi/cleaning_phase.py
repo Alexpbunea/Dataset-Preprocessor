@@ -65,17 +65,6 @@ class Ui_cleaning_phase(object):
         self.threshold_spin.setSuffix("%")
         self.controls_layout.addRow("Null Threshold:", self.threshold_spin)
         
-        # Apply filter button in a centered container
-        button_container = QHBoxLayout()
-        button_container.addStretch()
-        self.apply_filter = QPushButton("Apply Filter")
-        self.apply_filter.setMinimumWidth(200)  # Make button wider
-        button_container.addWidget(self.apply_filter)
-        button_container.addStretch()
-        
-        # Add empty label and button container to form
-        self.controls_layout.addRow("", button_container)
-        
         # Navigation buttons
         self.pushButton = QPushButton("Continue", self.centralwidget)
         self.pushButton2 = QPushButton("Back", self.centralwidget)
@@ -154,100 +143,6 @@ class Ui_cleaning_phase(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocessor", None))
 
-    
-        
-
-
-
-    def calculate_null_percentages(self, dataframe):
-        """Calculate the percentage of null values in each column and row."""
-        if dataframe is None:
-            return None, None
-
-        # Calculate column null percentages
-        col_nulls = {}
-        total_rows = dataframe.count()
-        for col in dataframe.columns:
-            null_count = dataframe.filter(dataframe[col].isNull()).count()
-            col_nulls[col] = (null_count / total_rows) * 100
-
-        # Calculate row null percentages (for first 500 rows)
-        row_nulls = []
-        rows = dataframe.limit(500).collect()
-        total_cols = len(dataframe.columns)
-        
-        for row in rows:
-            null_count = sum(1 for value in row.values() if value is None)
-            row_nulls.append((null_count / total_cols) * 100)
-
-        return col_nulls, row_nulls
-
-    def highlight_items_above_threshold(self, threshold):
-        """Highlight items that exceed the null threshold."""
-        if self.filter_type.currentText() == "Columns":
-            # Highlight column headers
-            for col in range(self.table.columnCount()):
-                header = self.table.horizontalHeaderItem(col)
-                if header and hasattr(header, 'null_percentage') and header.null_percentage >= threshold:
-                    header.setBackground(Qt.red)
-                    header.setForeground(Qt.white)
-                else:
-                    header.setBackground(Qt.white)
-                    header.setForeground(Qt.black)
-        else:
-            # Highlight row headers
-            for row in range(self.table.rowCount()):
-                header = self.table.verticalHeaderItem(row)
-                if header and hasattr(header, 'null_percentage') and header.null_percentage >= threshold:
-                    header.setBackground(Qt.red)
-                    header.setForeground(Qt.white)
-                else:
-                    header.setBackground(Qt.white)
-                    header.setForeground(Qt.black)
-
-    def setup_connections(self, dataframe):
-        """Set up signal connections for interactive filtering."""
-        def on_filter_changed():
-            self.apply_null_filter(dataframe)
-
-        self.threshold_spin.valueChanged.connect(on_filter_changed)
-        self.filter_type.currentTextChanged.connect(on_filter_changed)
-        self.apply_filter.clicked.connect(lambda: self.apply_null_filter(dataframe))
-
-    def apply_null_filter(self, dataframe):
-        """Apply the null filtering based on current settings."""
-        if dataframe is None:
-            return
-
-        threshold = self.threshold_spin.value()
-        filter_type = self.filter_type.currentText()
-        
-        # Get null percentages
-        col_nulls, row_nulls = self.calculate_null_percentages(dataframe)
-        
-        if filter_type == "Columns":
-            # Store null percentages in column headers
-            for idx, (col, percentage) in enumerate(col_nulls.items()):
-                header = QTableWidgetItem(col)
-                header.null_percentage = percentage
-                self.table.setHorizontalHeaderItem(idx, header)
-        else:
-            # Store null percentages in row headers
-            for row, percentage in enumerate(row_nulls):
-                header = QTableWidgetItem(str(row + 1))
-                header.null_percentage = percentage
-                self.table.setVerticalHeaderItem(row, header)
-        
-        # Highlight items above threshold
-        self.highlight_items_above_threshold(threshold)
-
-
-
-
-
-
-
-
 
     """
     
@@ -264,7 +159,21 @@ class Ui_cleaning_phase(object):
         self.pushButton2.setStyleSheet(button_style_back)
         self.table.setStyleSheet(table_style)
         self.controls_group.setStyleSheet(controls_style)
-        self.apply_filter.setStyleSheet(button_style)
+        
+        # Add specific style for filter_type to ensure text is black
+        self.filter_type.setStyleSheet("""
+            QComboBox {
+                color: black;
+            }
+            QComboBox::item {
+                color: black;
+                background-color: white;
+            }
+            QComboBox::item:selected {
+                color: black;
+                background-color: #e0e0e0;
+            }
+        """)
 
 
     def populate_table(self, dataframe):

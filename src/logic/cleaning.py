@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from pyspark.sql import DataFrame
+from pyspark.sql import SparkSession, DataFrame
 
 class cleaning:
     def __init__(self, dataset: DataFrame):
