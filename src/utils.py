@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 class Utils:
-    def __init__(self, dataframe = None, centralwidget = None, title = None, subtitle = None, pushButton = None, pushButton2 = None, table = None, scroll_area = None):
+    def __init__(self, dataframe = None, centralwidget = None, title = None, subtitle = None, pushButton = None, pushButton2 = None, pushButton3 = None, table = None, scroll_area = None):
         self.dataframe = dataframe
         self.centralwidget = centralwidget
 
@@ -20,11 +20,15 @@ class Utils:
         self.subtitle_label = subtitle
         self.pushButton = pushButton
         self.pushButton2 = pushButton2
-        
+        self.pushButton3 = pushButton3
         self.table = table
         self.scroll_area = scroll_area
+        
+        # Maximum character length for cell text
+        self.max_cell_text_length = 0
 
-    def populate_table(self):
+    def populate_table(self, lenght = 50):
+        self.max_cell_text_length = lenght
         """Fill the table with data from a Spark DataFrame."""
         if self.dataframe is None or len(self.dataframe.columns) == 0:
             self.table.setRowCount(0)
@@ -49,7 +53,20 @@ class Utils:
             for i, row in enumerate(rows):
                 for j, col in enumerate(columns):
                     value = row[col]  # Accede al valor por nombre de columna
-                    self.table.setItem(i, j, QTableWidgetItem(str(value) if value is not None else "Null"))
+                    str_value = str(value) if value is not None else "Null"
+                    
+                    # Truncate long text and add ellipsis
+                    display_text = str_value
+                    if len(str_value) > self.max_cell_text_length:
+                        display_text = str_value[:self.max_cell_text_length] + "..."
+                    
+                    item = QTableWidgetItem(display_text)
+                    
+                    # Set tooltip with full text for truncated cells
+                    if len(str_value) > self.max_cell_text_length:
+                        item.setToolTip(str_value)
+                    
+                    self.table.setItem(i, j, item)
                     self.table.setColumnWidth(j, min(self.table.columnWidth(j), max_col_width))
             
 

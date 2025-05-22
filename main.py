@@ -2,6 +2,10 @@ import sys
 import pandas as pd
 from pyspark.sql import SparkSession
 from PySide6.QtWidgets import QApplication, QMainWindow, QStackedWidget
+
+"""
+UI IMPORTS
+"""
 from src.AppUi.initial_window import *
 from src.AppUi.preview_phase import *
 from src.AppUi.cleaning_phase import *
@@ -12,6 +16,11 @@ from src.AppUi.comparison_phase import *
 from src.AppUi.final_window import *
 from src.utils import *
 
+"""
+LOGIC IMPORTS
+"""
+from src.logic.cleaning import *
+
 class MainController:
     def __init__(self):
         self.app = QApplication(sys.argv)
@@ -21,6 +30,7 @@ class MainController:
         self.spark = SparkSession.builder \
             .appName("Dataset Preprocessor") \
             .getOrCreate()
+        
         
         
         # Initializing the stacked widget
@@ -135,6 +145,8 @@ class MainController:
             try:
                 self.df_spark = self.spark.read.option("header", "true").csv(file_path, inferSchema=True).cache()
                 self.df_spark.count()
+                self.cleaning_logic = cleaning(self.df_spark)
+
                 print(f"[INFO]: Dataset loaded correctly in Spark: {file_name}")
                 
                 if hasattr(self.preview_ui, 'populate_table'):

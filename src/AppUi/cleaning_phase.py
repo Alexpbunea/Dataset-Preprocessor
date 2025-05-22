@@ -48,31 +48,20 @@ class Ui_cleaning_phase(object):
         self.table = QTableWidget()
         self.table.setObjectName(u"dataTable")
         
-        # Controls section
-        self.controls_group = QGroupBox("Null Value Filtering")
-        self.controls_layout = QFormLayout(self.controls_group)
-        self.controls_layout.setAlignment(Qt.AlignCenter)
-        
-        # Filter type selection
-        self.filter_type = QComboBox()
-        self.filter_type.addItems(["Columns", "Rows"])
-        self.controls_layout.addRow("Filter:", self.filter_type)
-        
-        # Threshold settings
-        self.threshold_spin = QSpinBox()
-        self.threshold_spin.setRange(0, 100)
-        self.threshold_spin.setValue(50)
-        self.threshold_spin.setSuffix("%")
-        self.controls_layout.addRow("Null Threshold:", self.threshold_spin)
+        # Sort by label and combo box
+        self.sort_label = QLabel("Sort by:", self.centralwidget)
+        self.sort_combo = QComboBox(self.centralwidget)
+        self.sort_combo.addItems(["Columns", "Rows"])
         
         # Navigation buttons
         self.pushButton = QPushButton("Continue", self.centralwidget)
         self.pushButton2 = QPushButton("Back", self.centralwidget)
+        self.pushButton3 = QPushButton("Delete", self.centralwidget)
 
         self._setup_widget_properties()
         self._setup_layout()
         
-        self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, self.table, self.scroll_area)
+        self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, self.pushButton3, self.table, self.scroll_area)
         self.setup_styles()
         
         MainWindow.setCentralWidget(self.centralwidget)
@@ -94,10 +83,15 @@ class Ui_cleaning_phase(object):
         self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         
-        # Control properties
-        self.controls_group.setMaximumWidth(300)
+        # Sort by properties
+        self.sort_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.sort_combo.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.sort_combo.setMinimumWidth(120)
+        
+        # Button properties
         self.pushButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.pushButton2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.pushButton3.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
     def _setup_layout(self):
         # Add header
@@ -108,16 +102,23 @@ class Ui_cleaning_phase(object):
         self.scroll_area.setWidget(self.table)
         self.verticalLayout.addWidget(self.scroll_area)
         
-        # Add controls
-        self.verticalLayout.addWidget(self.controls_group)
-        
-        # Add navigation buttons
+        # Add bottom controls and navigation in one row
         button_container = QHBoxLayout()
         button_container.setContentsMargins(0, 0, 0, 0)
         button_container.setSpacing(10)
+        
+        # Add sort controls on the left
+        button_container.addWidget(self.sort_label)
+        button_container.addWidget(self.sort_combo)
+        
+        # Add stretch to push buttons to the right
         button_container.addStretch()
+        
+        # Add navigation buttons on the right
+        button_container.addWidget(self.pushButton3)
         button_container.addWidget(self.pushButton2)
         button_container.addWidget(self.pushButton)
+        
         self.verticalLayout.addLayout(button_container)
 
     
@@ -144,6 +145,8 @@ class Ui_cleaning_phase(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocessor", None))
 
 
+
+
     """
     
     FUNCTIONS FOUND IN THE UTILS.PY FILE
@@ -157,22 +160,35 @@ class Ui_cleaning_phase(object):
         self.subtitle_label.setStyleSheet(subtitle_style)
         self.pushButton.setStyleSheet(button_style)
         self.pushButton2.setStyleSheet(button_style_back)
+        self.pushButton3.setStyleSheet(button_style)
         self.table.setStyleSheet(table_style)
-        self.controls_group.setStyleSheet(controls_style)
         
-        # Add specific style for filter_type to ensure text is black
-        self.filter_type.setStyleSheet("""
-            QComboBox {
-                color: black;
-            }
-            QComboBox::item {
+        # Style for sort combo and label
+        self.sort_label.setStyleSheet(f"""
+            QLabel {{
+                color: #333333;
+                font-size: {button_size}px;
+                font-weight: bold;
+            }}
+        """)
+        
+        self.sort_combo.setStyleSheet(f"""
+            QComboBox {{
                 color: black;
                 background-color: white;
-            }
-            QComboBox::item:selected {
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+                padding: 5px;
+                font-size: {button_size}px;
+            }}
+            QComboBox::item {{
+                color: black;
+                background-color: white;
+            }}
+            QComboBox::item:selected {{
                 color: black;
                 background-color: #e0e0e0;
-            }
+            }}
         """)
 
 

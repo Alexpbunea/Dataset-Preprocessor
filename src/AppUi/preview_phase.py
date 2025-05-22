@@ -34,23 +34,26 @@ class Ui_preview_phase(object):
         
         self.verticalLayout = QVBoxLayout(self.centralwidget)
         self.verticalLayout.setContentsMargins(20, 20, 20, 20)
-        self.verticalLayout.setSpacing(15)
+        self.verticalLayout.setSpacing(20)
 
+        # Header section
         self.title_label = QLabel("Preview", self.centralwidget)
         self.subtitle_label = QLabel("Preview the original dataset", self.centralwidget)
         
+        # Table section
         self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(False) 
+        self.scroll_area.setWidgetResizable(True)
         self.table = QTableWidget()
         self.table.setObjectName(u"dataTable")
         
+        # Navigation buttons
         self.pushButton = QPushButton("Continue", self.centralwidget)
         self.pushButton2 = QPushButton("Back", self.centralwidget)
 
         self._setup_widget_properties()
         self._setup_layout()
         
-        self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, self.table, self.scroll_area)
+        self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, None, self.table, self.scroll_area)
         self.setup_styles()
         
         MainWindow.setCentralWidget(self.centralwidget)
@@ -58,42 +61,37 @@ class Ui_preview_phase(object):
 
 
     def _setup_widget_properties(self):
+        # Header properties
         self.title_label.setAlignment(Qt.AlignCenter)
         self.subtitle_label.setAlignment(Qt.AlignCenter)
-        self.pushButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.pushButton2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-
-        # Properties of the tabla
+        
+        # Table properties
         self.table.setAlternatingRowColors(True)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.table.setSelectionMode(QTableWidget.SingleSelection)
-        self.table.verticalHeader().setVisible(False)
-
-        # Headers of the table
+        self.table.setSelectionMode(QTableWidget.MultiSelection)
+        self.table.verticalHeader().setVisible(True)
         self.table.horizontalHeader().setStretchLastSection(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Fixed) 
-        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn) 
-        self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)  
-
-        # Better visualization
-        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.scroll_area.setWidgetResizable(True)
-        self.table.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel)
-        self.table.setHorizontalScrollMode(QAbstractItemView.ScrollPerPixel)
-        self.table.setWordWrap(False)  
-        self.table.setTextElideMode(Qt.ElideRight)  
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.table.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         
+        # Button properties
+        self.pushButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.pushButton2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
 
     def _setup_layout(self):
+        # Add header
         self.verticalLayout.addWidget(self.title_label)
         self.verticalLayout.addWidget(self.subtitle_label)
         
+        # Add table
         self.scroll_area.setWidget(self.table)
-        self.verticalLayout.addWidget(self.scroll_area, 1)
+        self.verticalLayout.addWidget(self.scroll_area)
         
+        # Add navigation buttons
         button_container = QHBoxLayout()
-        button_container.setContentsMargins(0, 10, 0, 0)
+        button_container.setContentsMargins(0, 0, 0, 0)
         button_container.setSpacing(10)
         
         button_container.addStretch()
@@ -101,54 +99,38 @@ class Ui_preview_phase(object):
         button_container.addWidget(self.pushButton)
         
         self.verticalLayout.addLayout(button_container)
-
-
     
 
     def _install_resize_event(self):
         original_resize_event = self.MainWindow.resizeEvent
 
         def new_resize_event(event):
-            height = self.MainWindow.height()
-            new_title_size = max(18, int(height * 0.05)) 
-            new_subtitle_size = max(12, int(height * 0.025)) 
-            new_button_size = max(10, int(height * 0.02)) 
-            new_base_font_size = max(10, int(height * 0.018)) 
+            new_title_size = int(self.MainWindow.height() * 0.06)
+            new_subtitle_size = int(self.MainWindow.height() * 0.03)
+            new_button_size = int(self.MainWindow.height() * 0.021)
+            #new_base_font_size = max(10, int(self.MainWindow.height() * 0.018))
 
             self.setup_styles(
                 title_size=new_title_size,
                 subtitle_size=new_subtitle_size,
                 button_size=new_button_size,
-                base_font_size=new_base_font_size
+                #base_font_size=new_base_font_size
             )
             
-            if original_resize_event: # Check if it was actually there
+            if original_resize_event:
                 original_resize_event(event)
             else: 
                 super(self.MainWindow.__class__, self.MainWindow).resizeEvent(event)
 
-
         self.MainWindow.resizeEvent = new_resize_event
 
     
-    
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocessor - Cleaning Phase", None))
-        self.title_label.setText(QCoreApplication.translate("MainWindow", u"Data Cleaning", None))
-        self.subtitle_label.setText(QCoreApplication.translate("MainWindow", u"Inspect your data. You can select columns/rows to remove or modify.", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocessor - Preview Phase", None))
+        self.title_label.setText(QCoreApplication.translate("MainWindow", u"Preview", None))
+        self.subtitle_label.setText(QCoreApplication.translate("MainWindow", u"Preview the original dataset", None))
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"Continue", None))
         self.pushButton2.setText(QCoreApplication.translate("MainWindow", u"Back", None))
-
-
-
-
-
-
-
-
-
-
-
 
 
     """
@@ -157,8 +139,8 @@ class Ui_preview_phase(object):
 
     """
 
-    def setup_styles(self, title_size=36, subtitle_size=18, button_size=14, base_font_size=12): 
-        self.centralwidget, title_style, subtitle_style, button_style, button_style_back, table_style, _, _ = self.utils.setup_styles(title_size, subtitle_size, button_size, base_font_size)
+    def setup_styles(self, title_size=36, subtitle_size=18, button_size=14): 
+        self.centralwidget, title_style, subtitle_style, button_style, button_style_back, table_style, self.scroll_area, controls_style = self.utils.setup_styles(title_size, subtitle_size, button_size)
         self.title_label.setStyleSheet(title_style)
         self.subtitle_label.setStyleSheet(subtitle_style)
         self.pushButton.setStyleSheet(button_style)
