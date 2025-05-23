@@ -12,10 +12,23 @@ from PySide6.QtWidgets import (
     QHeaderView, QScrollArea, QAbstractItemView   # Added for table header styling/behavior
 )
 
+#global dataframe_original
+
 class Utils:
+
+    spark = None
+    dataframe_original = None
+    dataframe_sorted_columns = None
+    dataframe_sorted_rows = None
+
+
+    
     def __init__(self, dataframe = None, centralwidget = None, title = None, subtitle = None, pushButton = None, pushButton2 = None, pushButton3 = None, table = None, scroll_area = None):
         self.dataframe = dataframe
-        self.dataframe_original = dataframe
+    
+        #if self.dataframe is not None:
+        #    Utils.dataframe_original = self.dataframe
+    
         self.centralwidget = centralwidget
 
 
@@ -30,7 +43,7 @@ class Utils:
         # Maximum character length for cell text
         self.max_cell_text_length = 0
 
-    def populate_table(self, lenght = 50, rows = 500, dataframe = None):
+    def populate_table(self, lenght = 50, rows = 500, dataframe = None,  null_percentages=  None):
         if dataframe is not None:
             self.dataframe = dataframe
         self.max_cell_text_length = lenght
@@ -49,15 +62,40 @@ class Utils:
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)  # Mejor rendimiento
 
         try:
-            self.table.setRowCount(len(rows))
+            # Add an extra row if we have null percentages
+            display_rows = len(rows) + (1 if null_percentages else 0)
+            self.table.setRowCount(display_rows)
             self.table.setColumnCount(len(columns))
             self.table.setHorizontalHeaderLabels(columns)
-
-            max_col_width = self.scroll_area.width() // 2  
             
+            # If we have null percentages, add them as the first row
+            if null_percentages:
+                for j, col in enumerate(columns):
+                    percentage = null_percentages.get(col, 0.0)
+                    percentage_item = QTableWidgetItem(f"{percentage:.1f}%")
+                    
+                    # Style the percentage cell - highlight higher percentages
+                    if percentage > 50:
+                        percentage_item.setBackground(QColor(255, 150, 150))  # Light red for high null %
+                    elif percentage > 20:
+                        percentage_item.setBackground(QColor(255, 220, 150))  # Light orange for medium null %
+                        
+                    percentage_item.setToolTip(f"Null percentage: {percentage:.2f}%")
+                    self.table.setItem(0, j, percentage_item)
+                
+                # Add a special row header for the percentages row
+                self.table.setVerticalHeaderItem(0, QTableWidgetItem("% Nulls"))
+            else:
+                self.table.setVerticalHeaderItem(0, QTableWidgetItem("1"))
+            
+            # Offset for data rows if we have a percentage row
+            offset = 1 if null_percentages else 0
+            
+            # Fill in the data rows
             for i, row in enumerate(rows):
                 for j, col in enumerate(columns):
-                    value = row[col]  # Accede al valor por nombre de columna
+                    # Existing data population code, adjusted for offset
+                    value = row[col]
                     str_value = str(value) if value is not None else "Null"
                     
                     # Truncate long text and add ellipsis
@@ -71,10 +109,9 @@ class Utils:
                     if len(str_value) > self.max_cell_text_length:
                         item.setToolTip(str_value)
                     
-                    self.table.setItem(i, j, item)
-                    self.table.setColumnWidth(j, min(self.table.columnWidth(j), max_col_width))
+                    # Use offset to shift data rows down if we have a percentage row
+                    self.table.setItem(i+offset, j, item)
             
-
             total_width = sum(self.table.columnWidth(i) for i in range(self.table.columnCount()))
             self.table.setMinimumSize(total_width + 50, self.table.height())
             self.table.resizeColumnsToContents()

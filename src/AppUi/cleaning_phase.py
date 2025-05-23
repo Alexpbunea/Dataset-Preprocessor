@@ -24,6 +24,10 @@ def resource_path(relative_path):
 
 
 class Ui_cleaning_phase(object):
+    
+    #null_percentages = None
+
+
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():
@@ -54,7 +58,7 @@ class Ui_cleaning_phase(object):
         # Sort by label and combo box
         self.sort_label = QLabel("Sort by:", self.centralwidget)
         self.sort_combo = QComboBox(self.centralwidget)
-        self.sort_combo.addItems(["Columns", "Rows"])
+        self.sort_combo.addItems(["Original", "Rows", "Columns"])
         
         # Navigation buttons
         self.pushButton = QPushButton("Continue", self.centralwidget)
@@ -170,65 +174,80 @@ class Ui_cleaning_phase(object):
             
             # Convert to Python format for easier sorting
             if sort_option == "Columns":
-                # Sort columns by null counts (left to right = highest to lowest nulls)
-                column_nulls_dict = {}
-                column_data = column_null_counts.collect()[0]
+                if Utils.dataframe_sorted_columns is None:
+                    # Collect the restructured column_null_counts
+                    column_data = column_null_counts.collect()
+                    
+                    # # Create dictionary mapping column names to null counts
+                    # column_nulls_dict = {row["column_name"]: row["null_count"] for row in column_data}
+                    
+                    # # Calculate null percentages
+                    # Ui_cleaning_phase.null_percentages = {
+                    #     col: (count / total_rows * 100) if total_rows > 0 else 0.0
+                    #     for col, count in column_nulls_dict.items()
+                    # }
+                    
+                    # Sort columns by null counts (desc)
+                    sorted_columns = [row["column_name"] for row in 
+                                    column_null_counts.orderBy("null_count", ascending=False).collect()]
+                    
+                    # Create a new dataframe with reordered columns
+                    sorted_df = self.utils.dataframe.select(sorted_columns)
+                    Utils.dataframe_sorted_columns = sorted_df
+                    self.utils.populate_table(50, 200, sorted_df, self.cleaning_logic.get_null_percentages())
                 
-                for col in self.utils.dataframe.columns:
-                    column_nulls_dict[col] = column_data[col]
+                # Update the table
+                else:
+                    self.utils.populate_table(50, 200, Utils.dataframe_sorted_columns, self.cleaning_logic.get_null_percentages())
                 
-                # Sort columns by number of nulls (descending)
-                sorted_columns = sorted(column_nulls_dict.items(), key=lambda x: x[1], reverse=True)
-                
-                # Get the sorted column names
-                sorted_column_names = [col[0] for col in sorted_columns]
-                
-                # Create a new dataframe with reordered columns - only using select to avoid memory issues
-                sorted_df = self.utils.dataframe.select(sorted_column_names)
-                
-                # Update the dataframe reference first, then populate
-                #self.utils.dataframe = sorted_df
-                self.utils.populate_table(50, 200, sorted_df)
-                
-            else:  # "Rows" option
+            elif sort_option == "Rows":  # "Rows" option
                 # Get row indices sorted by null counts (most nulls first)
-                try:
-                    # More memory-efficient approach: Add row numbers to the dataframe with null counts
-                    from pyspark.sql.window import Window
-                    from pyspark.sql.functions import row_number, col as spark_col
+                if Utils.dataframe_sorted_rows is None:
+                    try:
+                        # More memory-efficient approach: Add row numbers to the dataframe with null counts
+                        from pyspark.sql.window import Window
+                        from pyspark.sql.functions import row_number, col as spark_col
 
-                    # Join original dataframe with null counts
-                    # First create a monotonically increasing ID in both dataframes
-                    from pyspark.sql.functions import monotonically_increasing_id
-                    df_with_id = self.utils.dataframe.withColumn("_row_id", monotonically_increasing_id())
-                    null_counts_with_id = row_null_counts.withColumn("_row_id", monotonically_increasing_id())
-                    
-                    # Join the dataframes
-                    combined_df = df_with_id.join(
-                        null_counts_with_id, 
-                        on="_row_id"
-                    )
-                    
-                    # Sort by null counts
-                    sorted_df = combined_df.orderBy(spark_col("null_count").desc())
-                    
-                    # Drop the temporary columns
-                    sorted_df = sorted_df.drop("_row_id", "null_count")
-                    
-                    # Update reference and populate table
-                    #self.utils.dataframe = sorted_df
-                    self.utils.populate_table(50, 200, sorted_df)
-                    
-                except Exception as e:
-                    print(f"[ERROR] Row sorting failed with error: {e}")
-                    import traceback
-                    traceback.print_exc()
-                    
-                    # Fallback method if the above fails
-                    print("[INFO] Using fallback method to sort rows")
-                    self.utils.populate_table(50, 100)
-                
+                        # Join original dataframe with null counts
+                        # First create a monotonically increasing ID in both dataframes
+                        from pyspark.sql.functions import monotonically_increasing_id
+                        df_with_id = self.utils.dataframe.withColumn("_row_id", monotonically_increasing_id())
+                        null_counts_with_id = row_null_counts.withColumn("_row_id", monotonically_increasing_id())
+                        
+                        # Join the dataframes
+                        combined_df = df_with_id.join(
+                            null_counts_with_id, 
+                            on="_row_id"
+                        )
+                        
+                        # Sort by null counts
+                        sorted_df = combined_df.orderBy(spark_col("null_count").desc())
+                        
+                        # Drop the temporary columns
+                        sorted_df = sorted_df.drop("_row_id", "null_count")
+                        
+                        # Update reference and populate table
+                        #self.utils.dataframe = sorted_df
+                        Utils.dataframe_sorted_rows = sorted_df
+                        self.utils.populate_table(50, 200, sorted_df)
+                        
+                    except Exception as e:
+                        print(f"[ERROR] Row sorting failed with error: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        
+                        # Fallback method if the above fails
+                        print("[INFO] Using fallback method to sort rows")
+                        self.utils.populate_table(50, 200)
+                else:
+                    self.utils.populate_table(50, 200, Utils.dataframe_sorted_rows)
+
+            else: #Original dataframe
+                self.utils.populate_table(50, 200, Utils.dataframe_original)
+
             print(f"[INFO] Table sorted by {sort_option} based on null counts")
+
+
                 
         except Exception as e:
             print(f"[ERROR] Error sorting table: {e}")
@@ -270,13 +289,20 @@ class Ui_cleaning_phase(object):
                 padding: 5px;
                 font-size: {button_size}px;
             }}
-            QComboBox::item {{
-                color: black;
-                background-color: white;
+            QComboBox::drop-down {{
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left: 1px solid #cccccc;
             }}
-            QComboBox::item:selected {{
+            QComboBox::down-arrow {{
+                image: url(down_arrow.png);  /* opcional, si tienes un ícono */
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: white;
                 color: black;
-                background-color: #e0e0e0;
+                selection-background-color: #e0e0e0;
+                selection-color: black;
             }}
         """)
 

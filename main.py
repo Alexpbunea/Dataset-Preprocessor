@@ -30,6 +30,8 @@ class MainController:
         self.spark = SparkSession.builder \
             .appName("Dataset Preprocessor") \
             .getOrCreate()
+
+        Utils.spark = self.spark
         
         # Initialize cleaning_logic 
         self.cleaning_logic = None
@@ -151,12 +153,14 @@ class MainController:
                 self.df_spark = self.spark.read.option("header", "true").csv(file_path, inferSchema=True).cache()
                 self.df_spark.count()
                 self.cleaning_logic = cleaning(self.df_spark)
+                
+                Utils.dataframe_original = self.df_spark
 
                 print(f"[INFO]: Dataset loaded correctly in Spark: {file_name}")
                 
                 if hasattr(self.preview_ui, 'populate_table'):
-                    self.preview_ui.populate_table(self.df_spark)
-                    self.cleaning_ui.populate_table(self.df_spark)
+                    self.preview_ui.populate_table(Utils.dataframe_original)
+                    self.cleaning_ui.populate_table(Utils.dataframe_original)
                     
                     # Set reference to cleaning_logic in the UI
                     if hasattr(self.cleaning_ui, 'cleaning_logic'):
