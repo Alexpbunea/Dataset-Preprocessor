@@ -8,7 +8,10 @@ UI IMPORTS
 """
 from src.AppUi.initial_window import *
 from src.AppUi.preview_phase import *
+
 from src.AppUi.cleaning_phase import *
+from src.AppUi.cleaning.delete_ui import *
+
 from src.AppUi.imputation_phase import *
 from src.AppUi.transformation_phase import *
 from src.AppUi.data_splitting_phase import *
@@ -40,7 +43,11 @@ class MainController:
         # Initializing the main window
         self.initial_window = QMainWindow()
         self.preview_window = QMainWindow()
+        
         self.cleaning_window = QMainWindow()
+        self.delete_window = QMainWindow()
+        
+        
         self.imputation_window = QMainWindow()
         self.transformation_window = QMainWindow()
         self.data_splitting_window = QMainWindow()
@@ -50,7 +57,10 @@ class MainController:
         # Creating the instances of the UI classes
         self.initial_ui = Ui_initial_phase()
         self.preview_ui = Ui_preview_phase()
+        
         self.cleaning_ui = Ui_cleaning_phase()
+        self.delete_ui = Ui_delete()
+
         self.imputation_ui = Ui_imputation_phase()
         self.transformation_ui = Ui_transformation_phase()
         self.data_splitting_ui = Ui_data_phase()
@@ -61,6 +71,8 @@ class MainController:
         self.initial_ui.setupUi(self.initial_window)
         self.preview_ui.setupUi(self.preview_window)
         self.cleaning_ui.setupUi(self.cleaning_window)
+        self.delete_ui.setupUi(self.delete_window)
+        self.delete_window.hide()
         self.imputation_ui.setupUi(self.imputation_window)
         self.transformation_ui.setupUi(self.transformation_window)
         self.data_splitting_ui.setupUi(self.data_splitting_window)
@@ -84,9 +96,19 @@ class MainController:
         self.preview_ui.pushButton.clicked.connect(self.show_cleaning)
         self.preview_ui.pushButton2.clicked.connect(self.show_initial)
 
+
         self.cleaning_ui.pushButton.clicked.connect(self.show_imputation)
         self.cleaning_ui.pushButton2.clicked.connect(self.show_preview)
+        self.cleaning_ui.pushButton3.clicked.connect(lambda: self.show_delete(True))
         
+        self.delete_ui.pushButton2.clicked.connect(lambda: self.show_delete(False))
+        
+        #if self.delete_ui.cleaning_logic is not None:
+        #    print(self.delete_ui.cleaning_logic)
+        #    self.delete_ui.pushButton.clicked.connect(self.delete_ui.cleaning_logic.delete)
+        
+        
+
         self.imputation_ui.pushButton.clicked.connect(self.show_transformation)
         self.imputation_ui.pushButton2.clicked.connect(self.show_cleaning)
         
@@ -123,6 +145,14 @@ class MainController:
         # Make sure to apply sorting if the user has changed the sort option
         if hasattr(self.cleaning_ui, 'sort_table_by_nulls'):
             self.cleaning_ui.sort_table_by_nulls()
+
+    def show_delete(self, value):
+        if value == True:
+            self.delete_window.show()
+            
+
+        else:
+            self.delete_window.hide()
 
     def show_imputation(self):
         self.stacked_widget.setCurrentIndex(3)
@@ -167,6 +197,16 @@ class MainController:
                     
                     if hasattr(self.cleaning_ui, 'dataset_info'):
                         self.cleaning_ui.dataset_info = self.dataset_info
+                if hasattr(self.delete_ui, 'cleaning_logic'):
+                #print("hisfiasdh")
+                    self.delete_ui.cleaning_logic = self.cleaning_logic
+                    print(self.delete_ui.pushButton)
+                    self.delete_ui.pushButton.clicked.connect(self.delete_ui.cleaning_logic.delete)
+                    #self.delete_ui.cleaning_logic.set_delete_button(self.delete_ui.pushButton)
+                    #print(self.delete_ui.cleaning_logic.delete_button)
+                    #self.delete_ui.pushButton.clicked.connect(self.delete_ui.cleaning_logic.delete())
+                    
+                    
 
 
 

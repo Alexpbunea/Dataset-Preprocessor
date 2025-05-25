@@ -12,13 +12,32 @@ class cleaning:
         #self.dataset = dataset
         self.dataset_info = dataset_info
 
-        self.dataset = self.dataset_info.get_dataframe()
+        #self.dataframe = self.dataset_info.get_dataframe()
+        self.dataframe = self.dataset_info.get_dataframe_original()
+        self.dataframe_info = self.dataset_info.get_general_info_original()
+        
+        self.delete_button = None
+        
+        self.first_option = []
+        self.second_option = []
+        
         self.columns_to_drop = []
         self.rows_to_drop = []
-        self.total_rows = self.dataset.count()
-        self.null_percentages = None
-        
     
+    def set_columns_to_drop(self, columns_to_drop):
+        self.columns_to_drop = columns_to_drop
+        
+    def set_rows_to_drop(self, rows_to_drop):
+        self.rows_to_drop = rows_to_drop
+    
+    def set_delete_button(self, delete_button):
+        self.delete_button = delete_button
+    
+    def delete(self):
+        print("delete")
+            #if self.delete_button.clicked():
+        
+        
     def drop_data(self):
         """
         Drop columns and rows specified in the columns_to_drop and rows_to_drop lists.
@@ -26,7 +45,7 @@ class cleaning:
         Returns:
             DataFrame: The dataset after dropping specified columns and rows
         """
-        result_df = self.dataset
+        result_df = self.dataframe
         
         # Drop columns
         if self.columns_to_drop:
@@ -48,7 +67,7 @@ class cleaning:
             # Drop the temporary columns
             result_df = result_df.drop("dummy", "row_id")
         
-        self.dataset = result_df
+        self.dataframe = result_df
         return result_df
 
     

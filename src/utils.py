@@ -268,10 +268,11 @@ class Utils:
         """
 
         # Aplica también al scroll area
-        self.scroll_area.setStyleSheet(f"""
-            background-color: {colors['table_bg']};
-            border: none;
-        """)
+        if self.scroll_area is not None:
+            self.scroll_area.setStyleSheet(f"""
+                background-color: {colors['table_bg']};
+                border: none;
+            """)
 
         controls_style = f"""
             QGroupBox {{
@@ -279,7 +280,7 @@ class Utils:
                 border: 1px solid {colors['border_gray']};
                 border-radius: 5px;
                 margin-top: 1ex;
-                font-size: {int(button_size * 0.9)}px;
+                font-size: {int(base_font_size * 0.9)}px;
                 color: black;
             }}
             QGroupBox::title {{
@@ -296,15 +297,46 @@ class Utils:
                 border-radius: 3px;
                 background: white;
                 min-height: 25px;
-                font-size: {int(button_size * 0.8)}px;
+                font-size: {int(base_font_size * 0.9)}px;
                 color: black;
             }}
             QComboBox:hover, QSpinBox:hover {{
                 border-color: {colors['button']};
                 color: black;
             }}
+            QLineEdit {{
+                padding: 5px;
+                border: 1px solid {colors['border_gray']};
+                border-radius: 3px;
+                background: white;
+                font-size: {int(base_font_size)}px;
+                color: black;
+            }}
+            QLineEdit:hover {{
+                border-color: {colors['button']};
+            }}
+            QRadioButton {{
+                font-size: {int(base_font_size)}px;
+                color: black;
+            }}
+            QRadioButton::indicator {{
+                width: 13px;
+                height: 13px;
+                border-radius: 7px;
+                border: 1px solid black;     /* Black outline for unchecked state */
+                background-color: white;     /* White fill for unchecked state */
+            }}
+            
+            QRadioButton::indicator:checked {{
+                background-color: {colors['button']};  /* Fill with theme button color */
+                border: 1px solid {colors['button']};   /* Border also theme button color, making it look solid */
+            }}
+
+            QRadioButton::indicator:unchecked {{ /* This selector is a bit redundant if the base ::indicator is styled for unchecked */
+                background-color: white;   /* Fondo blanco cuando no está seleccionado */
+            }}
             QLabel {{
-                font-size: {int(button_size * 0.8)}px;
+                font-size: {int(base_font_size)}px;
                 color: {colors['text_black']};
                 
             }}
