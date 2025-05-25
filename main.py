@@ -16,10 +16,13 @@ from src.AppUi.comparison_phase import *
 from src.AppUi.final_window import *
 from src.utils import *
 
+
 """
 LOGIC IMPORTS
 """
 from src.logic.cleaning import *
+from src.logic.dataset_info import *
+
 
 class MainController:
     def __init__(self):
@@ -30,13 +33,8 @@ class MainController:
         self.spark = SparkSession.builder \
             .appName("Dataset Preprocessor") \
             .getOrCreate()
-
-        Utils.spark = self.spark
-        
-        # Initialize cleaning_logic 
+                
         self.cleaning_logic = None
-        
-        # Initializing the stacked widget
         self.stacked_widget = QStackedWidget()
         
         # Initializing the main window
@@ -151,20 +149,27 @@ class MainController:
         if file_path:
             try:
                 self.df_spark = self.spark.read.option("header", "true").csv(file_path, inferSchema=True).cache()
-                self.df_spark.count()
-                self.cleaning_logic = cleaning(self.df_spark)
+                #self.df_spark.count()
                 
-                Utils.dataframe_original = self.df_spark
-
+                self.dataset_info = DatasetInfo(self.spark, self.df_spark)
+                self.dataset_info.set_dataframe_original(self.df_spark)
+                self.dataset_info.set_general_info()
+                self.dataset_info.set_general_info_original()
+                
+                self.cleaning_logic = cleaning(self.dataset_info)
+                
                 print(f"[INFO]: Dataset loaded correctly in Spark: {file_name}")
                 
                 if hasattr(self.preview_ui, 'populate_table'):
-                    self.preview_ui.populate_table(Utils.dataframe_original)
-                    self.cleaning_ui.populate_table(Utils.dataframe_original)
+                    self.preview_ui.populate_table(self.dataset_info)
+                    self.cleaning_ui.populate_table(self.dataset_info)
                     
-                    # Set reference to cleaning_logic in the UI
-                    if hasattr(self.cleaning_ui, 'cleaning_logic'):
-                        self.cleaning_ui.cleaning_logic = self.cleaning_logic
+                    
+                    if hasattr(self.cleaning_ui, 'dataset_info'):
+                        self.cleaning_ui.dataset_info = self.dataset_info
+
+
+
 
             except Exception as e:
                 print(f"[ERROR]: When trying to load the dataset with Spark: {e}")

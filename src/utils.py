@@ -11,27 +11,24 @@ from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QFileDialog, QTableWidget, QTableWidgetItem, # Added QTableWidgetItem
     QHeaderView, QScrollArea, QAbstractItemView   # Added for table header styling/behavior
 )
+from src.logic.dataset_info import DatasetInfo
 
 #global dataframe_original
 
 class Utils:
 
-    spark = None
-    dataframe_original = None
-    dataframe_sorted_columns = None
-    dataframe_sorted_rows = None
+    #spark = None
+    #dataframe_original = None
+    #dataframe_sorted_columns = None
+    #dataframe_sorted_rows = None
 
 
     
-    def __init__(self, dataframe = None, centralwidget = None, title = None, subtitle = None, pushButton = None, pushButton2 = None, pushButton3 = None, table = None, scroll_area = None):
+    def __init__(self, dataframe = None, centralwidget = None, title = None, subtitle = None, pushButton = None, pushButton2 = None, pushButton3 = None, table = None, scroll_area = None, dataset_info=None):
         self.dataframe = dataframe
-    
-        #if self.dataframe is not None:
-        #    Utils.dataframe_original = self.dataframe
-    
+        self.dataset_info = dataset_info
+        self.general_info = None
         self.centralwidget = centralwidget
-
-
         self.title_label = title
         self.subtitle_label = subtitle
         self.pushButton = pushButton
@@ -39,31 +36,43 @@ class Utils:
         self.pushButton3 = pushButton3
         self.table = table
         self.scroll_area = scroll_area
-        
-        # Maximum character length for cell text
         self.max_cell_text_length = 0
 
-    def populate_table(self, lenght = 50, rows = 500, dataframe = None,  null_percentages=  None):
-        if dataframe is not None:
-            self.dataframe = dataframe
-        self.max_cell_text_length = lenght
-        """Fill the table with data from a Spark DataFrame."""
-        if self.dataframe is None or len(self.dataframe.columns) == 0:
-            self.table.setRowCount(0)
-            self.table.setColumnCount(0)
-            self.table.setHorizontalHeaderLabels(["No data to display"])
-            return
+
+    def populate_table(self, lenght = 50, rows = 500, dataset_info = None,  where_to_show =  None):
+        null_percentages = 0
+        if dataset_info is not None:
+            self.dataset_info = dataset_info
+            info = self.dataset_info.get_general_info()
+            self.dataframe = self.dataset_info.get_dataframe()
+
+            if self.dataframe is None or info.get("num_columns") == 0:
+                self.table.setRowCount(0)
+                self.table.setColumnCount(0)
+                self.table.setHorizontalHeaderLabels(["No data to display"])
+                return
         
-        columns = self.dataframe.columns
-        rows = self.dataframe.limit(rows).collect()
+        self.max_cell_text_length = lenght
+        columns = None
+        if self.dataset_info is not None:
+            columns = info.get("column_names")
+            
+            if where_to_show == "preview":
+                pass
+            elif where_to_show == "cleaning":
+                null_percentages = self.dataset_info.get_null_percentages()
+            else:
+                pass
+        
+        spark_rows = self.dataframe.limit(rows).collect()
 
         # Improves performance by disabling updates while populating the table
         self.table.setUpdatesEnabled(False)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)  # Mejor rendimiento
 
         try:
-            # Add an extra row if we have null percentages
-            display_rows = len(rows) + (1 if null_percentages else 0)
+            
+            display_rows = len(spark_rows) + (1 if null_percentages else 0)
             self.table.setRowCount(display_rows)
             self.table.setColumnCount(len(columns))
             self.table.setHorizontalHeaderLabels(columns)
@@ -92,7 +101,7 @@ class Utils:
             offset = 1 if null_percentages else 0
             
             # Fill in the data rows
-            for i, row in enumerate(rows):
+            for i, row in enumerate(spark_rows):
                 for j, col in enumerate(columns):
                     # Existing data population code, adjusted for offset
                     value = row[col]

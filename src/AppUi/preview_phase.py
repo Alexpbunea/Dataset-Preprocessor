@@ -148,9 +148,9 @@ class Ui_preview_phase(object):
         self.table.setStyleSheet(table_style) 
 
 
-    def populate_table(self, dataframe):
+    def populate_table(self, dataframe_info):
         """Fill the table with data from a Spark DataFrame."""
-        self.utils.dataframe = dataframe
-        self.utils.populate_table(50, 1000)
+        #self.utils.dataframe = dataframe
+        self.utils.populate_table(50, 1000, dataframe_info, "preview")
         
 
