@@ -10,8 +10,9 @@ from PySide6.QtWidgets import (
     QTableWidgetItem, QScrollArea, QSpinBox, QComboBox,
     QHeaderView, QAbstractItemView, QGroupBox, QFormLayout
 )
-from pyspark.sql.functions import monotonically_increasing_id
 from src.utils import *
+from pyspark.sql.functions import monotonically_increasing_id, col as spark_col
+from pyspark.sql.window import Window
 
 
 def resource_path(relative_path):
@@ -156,100 +157,66 @@ class Ui_cleaning_phase(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Dataset Preprocessor", None))
 
 
+
+
     def sort_table_by_nulls(self):
         """
-        Sort the table based on the number of nulls and the selected sort option.
-        If 'Columns' is selected, sort from left to right (reorder columns).
-        If 'Rows' is selected, sort from top to bottom (reorder rows).
+        Sort the dataset based on null counts per column or row.
         """
         if not self.dataset_info:
             print("[INFO] No data available to sort")
             return
+
         sort_option = self.sort_combo.currentText()
+        general_info = self.dataset_info.get_general_info()
 
         try:
-            column_null_counts, row_null_counts = self.dataset_info.get_general_info().get("column_null_counts"), self.dataset_info.get_general_info().get("row_null_counts")
-            
             if sort_option == "Columns":
-                if self.dataset_info.get_dataframe_sorted_columns() is None:
-                    sorted_columns = [row["column_name"] for row in 
-                                    column_null_counts.orderBy("null_count", ascending=False).collect()]
-                    
+                sorted_cols_df = self.dataset_info.get_dataframe_sorted_columns()
+                if sorted_cols_df is None:
+                    sorted_columns = [
+                        row["column_name"]
+                        for row in general_info["column_null_counts"].orderBy("null_count", ascending=False).collect()
+                    ]
                     sorted_df = self.dataset_info.get_dataframe_original().select(sorted_columns)
                     self.dataset_info.set_dataframe_sorted_columns(sorted_df)
-                    self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_columns()) 
-                    self.dataset_info.set_general_info() # Update general_info for the new active (column-sorted) dataframe
-                    
-                    self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
-                
-                else:
-                    self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_columns())
-                    self.dataset_info.set_general_info() # Update general_info for the restored (column-sorted) dataframe
-                    self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
-                
-            elif sort_option == "Rows":  # "Rows" option
-                if self.dataset_info.get_dataframe_sorted_rows() is None:
-                    try:
-                        from pyspark.sql.window import Window
-                        from pyspark.sql.functions import row_number, col as spark_col
 
-                        
-                        current_df_for_row_sorting = self.dataset_info.get_dataframe_original()
-                        df_with_id = current_df_for_row_sorting.withColumn("_row_id", monotonically_increasing_id())
-                        
-                        original_active_df = self.dataset_info.get_dataframe()
-                        self.dataset_info.set_dataframe(current_df_for_row_sorting)
-                        self.dataset_info.set_general_info() # This will update general_info, including row_null_counts based on original
-                        _, row_null_counts = self.dataset_info.get_general_info()["column_null_counts"], self.dataset_info.get_general_info()["row_null_counts"]
+                self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_columns())
+                self.dataset_info.set_general_info()
 
-                        null_counts_with_id = row_null_counts.withColumn("_row_id", monotonically_increasing_id())
-                        
-                        # Join the dataframes
-                        combined_df = df_with_id.join(
-                            null_counts_with_id, 
-                            on="_row_id"
-                        )
-                        
-                        # Sort by null counts
-                        sorted_df = combined_df.orderBy(spark_col("null_count").desc())
-                        
-                        # Drop the temporary columns
-                        sorted_df = sorted_df.drop("_row_id", "null_count")
-                        
-                        self.dataset_info.set_dataframe_sorted_rows(sorted_df)
-                        self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_rows()) 
-                        self.dataset_info.set_general_info() # Update general_info for the new active (row-sorted) dataframe
+            elif sort_option == "Rows":
+                sorted_rows_df = self.dataset_info.get_dataframe_sorted_rows()
+                if sorted_rows_df is None:
+                    original_df = self.dataset_info.get_dataframe_original()
+                    df_with_id = original_df.withColumn("_row_id", monotonically_increasing_id())
 
-                        self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
-                        
-                    except Exception as e:
-                        print(f"[ERROR] Row sorting failed with error: {e}")
-                        import traceback
-                        traceback.print_exc()
-                        
-                        # Fallback method if the above fails
-                        print("[INFO] Using fallback method to sort rows")
-                        if self.dataset_info.get_dataframe() is not None: # Ensure there's a dataframe
-                           self.dataset_info.set_general_info() # Try to update general_info
-                        self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
-                else:
-                    self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_rows())
-                    self.dataset_info.set_general_info() # Update general_info for the restored (row-sorted) dataframe
-                    self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
+                    # Usa el row_null_counts original
+                    row_null_counts = general_info["row_null_counts"].withColumn("_row_id", monotonically_increasing_id())
 
-            else: #Original dataframe
+                    sorted_df = (
+                        df_with_id
+                        .join(row_null_counts, on="_row_id")
+                        .orderBy(spark_col("null_count").desc())
+                        .drop("_row_id", "null_count")
+                    )
+
+                    self.dataset_info.set_dataframe_sorted_rows(sorted_df)
+
+                self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_rows())
+                self.dataset_info.set_general_info()
+
+            else:  # Opción "Original"
                 self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_original())
                 self.dataset_info.set_general_info(self.dataset_info.get_general_info_original())
-                self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
 
+            self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
             print(f"[INFO] Table sorted by {sort_option} based on null counts")
 
-
-                
         except Exception as e:
             print(f"[ERROR] Error sorting table: {e}")
             import traceback
             traceback.print_exc()
+
 
 
     """
@@ -306,16 +273,10 @@ class Ui_cleaning_phase(object):
 
     def populate_table(self, dataframe):
         """Fill the table with data from a Spark DataFrame and highlight null values."""
-        # This method in Ui_cleaning_phase seems to be a wrapper.
-        # It should ideally pass dataset_info to the utils.populate_table
-        # For now, assuming 'dataframe' is actually dataset_info based on main.py context
-        if isinstance(dataframe, DatasetInfo): # Check if it's a DatasetInfo object
+        if isinstance(dataframe, DatasetInfo): 
             self.utils.populate_table(50, 200, dataset_info=dataframe, where_to_show="cleaning")
         else:
-            # Fallback or error handling if it's not a DatasetInfo object
-            # This branch might indicate an issue in how populate_table is called from main.py for cleaning_ui
             print("[WARNING] populate_table in Ui_cleaning_phase received a DataFrame directly. Expected DatasetInfo.")
-            # Attempt to use the existing self.dataset_info if available
             if self.dataset_info:
                  self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
             else:

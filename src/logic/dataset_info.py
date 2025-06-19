@@ -2,6 +2,7 @@ import sys
 import pandas as pd
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, count, when, isnan, sum as spark_sum, lit
+from pyspark.sql.functions import col, when, isnan, sum as spark_sum, expr
 from functools import reduce
 from pyspark.sql import functions as F
 import copy
@@ -104,33 +105,21 @@ class DatasetInfo:
                 - column_null_counts: DataFrame with column_name and null_count columns
                 - row_null_counts: DataFrame with row indices and their null counts
         """
-        # Calculate nulls for each column (as before)
-        column_null_counts_raw = self.dataframe.select([
-            spark_sum(when(col(c).isNull() | isnan(col(c)), 1).otherwise(0)).alias(c)
-            for c in self.general_info["column_names"]
-        ])
-        
-        # Restructure column nulls into column_name and null_count format for easier sorting
-        stack_expr = ", ".join([f"'{col}', `{col}`" for col in self.general_info["column_names"]])
-        column_null_counts = column_null_counts_raw.select(
-            F.expr(f"stack({self.general_info["num_columns"]}, {stack_expr}) as (column_name, null_count)")
-        )
-        
-        # Row nulls calculation remains the same
-        null_conditions = [when(col(c).isNull() | isnan(col(c)), 1).otherwise(0).alias(f"null_{c}") 
-                        for c in self.general_info["column_names"]]
-        
-        df_with_null_flags = self.dataframe.select("*", *null_conditions)
-        
-        sum_expr = null_conditions[0].alias("null_count")
-        for i in range(1, len(null_conditions)):
-            sum_expr = (sum_expr + null_conditions[i]).alias("null_count")
-        
-        if len(null_conditions) == 1:
-            row_null_counts = df_with_null_flags.select(null_conditions[0].alias("null_count"))
-        else:
-            row_null_counts = df_with_null_flags.select(sum_expr)
-        
+        column_names = self.general_info["column_names"]
+        num_columns = self.general_info["num_columns"]
+
+        # 1. Column null counts (más eficiente y directo)
+        null_exprs = [spark_sum(when(col(c).isNull() | isnan(col(c)), 1).otherwise(0)).alias(c) for c in column_names]
+        col_nulls_df = self.dataframe.select(null_exprs)
+
+        # Stack para convertir columnas en filas (column_name, null_count)
+        stack_expr = ", ".join([f"'{c}', `{c}`" for c in column_names])
+        column_null_counts = col_nulls_df.select(expr(f"stack({num_columns}, {stack_expr})").alias("column_name", "null_count"))
+
+        # 2. Row null counts (más vectorizado y escalable)
+        row_nulls_expr = sum(when(col(c).isNull() | isnan(col(c)), 1).otherwise(0) for c in column_names).alias("null_count")
+        row_null_counts = self.dataframe.select(row_nulls_expr)
+
         self.general_info["column_null_counts"] = column_null_counts
         self.general_info["row_null_counts"] = row_null_counts
 
@@ -141,12 +130,11 @@ class DatasetInfo:
         """
         This is not needed, but I wanted to calculate them to show in the table of the cleaning phase
         """
-        column_null_counts, _ = self.general_info["column_null_counts"], self.general_info["row_null_counts"]
-        column_data = column_null_counts.collect()
-        column_nulls_dict = {row["column_name"]: row["null_count"] for row in column_data}
+        col_nulls = self.general_info["column_null_counts"].collect()
+        num_rows = self.general_info["num_rows"]
         self.general_info["null_percentages"] = {
-                        col: (count /  self.general_info["num_rows"] * 100) if  self.general_info["num_rows"] > 0 else 0.0
-                        for col, count in column_nulls_dict.items()
+            row["column_name"]: (row["null_count"] / num_rows * 100) if num_rows else 0.0
+            for row in col_nulls
         }
     
     def get_null_percentages(self):

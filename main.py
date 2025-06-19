@@ -35,6 +35,7 @@ class MainController:
         # Initializing SparkSession
         self.spark = SparkSession.builder \
             .appName("Dataset Preprocessor") \
+            .master("local[*]") \
             .getOrCreate()
                 
         self.cleaning_logic = None
@@ -178,7 +179,7 @@ class MainController:
         file_name = self.initial_ui.file_name
         if file_path:
             try:
-                self.df_spark = self.spark.read.option("header", "true").csv(file_path, inferSchema=True).cache()
+                self.df_spark = self.spark.read.option("header", "true").csv(file_path, inferSchema=True)
                 #self.df_spark.count()
                 
                 self.dataset_info = DatasetInfo(self.spark, self.df_spark)

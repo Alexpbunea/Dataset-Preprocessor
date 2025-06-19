@@ -64,7 +64,7 @@ class Utils:
             else:
                 pass
         
-        spark_rows = self.dataframe.limit(rows).collect()
+        spark_rows = self.dataframe.take(rows)#self.dataframe.limit(rows).collect()
 
         # Improves performance by disabling updates while populating the table
         self.table.setUpdatesEnabled(False)
