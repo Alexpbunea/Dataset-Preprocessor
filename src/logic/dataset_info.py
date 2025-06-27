@@ -117,8 +117,14 @@ class DatasetInfo:
         column_null_counts = col_nulls_df.select(expr(f"stack({num_columns}, {stack_expr})").alias("column_name", "null_count"))
 
         # 2. Row null counts (más vectorizado y escalable)
-        row_nulls_expr = sum(when(col(c).isNull() | isnan(col(c)), 1).otherwise(0) for c in column_names).alias("null_count")
-        row_null_counts = self.dataframe.select(row_nulls_expr)
+        #row_nulls_expr = sum(when(col(c).isNull() | isnan(col(c)), 1).otherwise(0) for c in column_names).alias("null_count")
+        row_nulls_expr = reduce(
+            lambda a, b: a + b,
+            [when(col(c).isNull() | isnan(col(c)), 1).otherwise(0) for c in column_names]
+        )#.alias("null_count")
+        row_null_counts = self.dataframe.withColumn("null_count", row_nulls_expr).select("null_count")
+        
+        
 
         self.general_info["column_null_counts"] = column_null_counts
         self.general_info["row_null_counts"] = row_null_counts

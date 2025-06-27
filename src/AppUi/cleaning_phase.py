@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
 from src.utils import *
 from pyspark.sql.functions import monotonically_increasing_id, col as spark_col
 from pyspark.sql.window import Window
+from pyspark.sql.functions import col, sum, when, isnan
+from functools import reduce
 
 
 def resource_path(relative_path):
@@ -60,7 +62,7 @@ class Ui_cleaning_phase(object):
         # Sort by label and combo box
         self.sort_label = QLabel("Sort by:", self.centralwidget)
         self.sort_combo = QComboBox(self.centralwidget)
-        self.sort_combo.addItems(["Original", "Rows", "Columns"])
+        self.sort_combo.addItems(["Columns", "Rows"])
         
         # Navigation buttons
         self.pushButton = QPushButton("Continue", self.centralwidget)
@@ -172,21 +174,11 @@ class Ui_cleaning_phase(object):
 
         try:
             if sort_option == "Columns":
-                sorted_cols_df = self.dataset_info.get_dataframe_sorted_columns()
-                if sorted_cols_df is None:
-                    sorted_columns = [
-                        row["column_name"]
-                        for row in general_info["column_null_counts"].orderBy("null_count", ascending=False).collect()
-                    ]
-                    sorted_df = self.dataset_info.get_dataframe_original().select(sorted_columns)
-                    self.dataset_info.set_dataframe_sorted_columns(sorted_df)
-
-                self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_columns())
-                self.dataset_info.set_general_info()
+                self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_original())
 
             elif sort_option == "Rows":
-                sorted_rows_df = self.dataset_info.get_dataframe_sorted_rows()
-                if sorted_rows_df is None:
+                
+                if self.dataset_info.get_dataframe_sorted_rows() is None:
                     original_df = self.dataset_info.get_dataframe_original()
                     df_with_id = original_df.withColumn("_row_id", monotonically_increasing_id())
 
@@ -203,11 +195,6 @@ class Ui_cleaning_phase(object):
                     self.dataset_info.set_dataframe_sorted_rows(sorted_df)
 
                 self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_rows())
-                self.dataset_info.set_general_info()
-
-            else:  # Opción "Original"
-                self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_original())
-                self.dataset_info.set_general_info(self.dataset_info.get_general_info_original())
 
             self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
             print(f"[INFO] Table sorted by {sort_option} based on null counts")

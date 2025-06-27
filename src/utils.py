@@ -64,11 +64,11 @@ class Utils:
             else:
                 pass
         
-        spark_rows = self.dataframe.take(rows)#self.dataframe.limit(rows).collect()
+        spark_rows = self.dataframe.take(rows)
 
         # Improves performance by disabling updates while populating the table
         self.table.setUpdatesEnabled(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)  # Mejor rendimiento
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive) 
 
         try:
             
