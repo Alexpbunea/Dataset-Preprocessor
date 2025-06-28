@@ -32,20 +32,19 @@ class cleaning:
     
     def set_delete_button(self, delete_button):
         self.delete_button = delete_button
-    
-    def delete(self):
-        print("delete")
-            #if self.delete_button.clicked():
         
         
-    def drop_data(self):
+    def drop_data(self, dataframe=None):
         """
         Drop columns and rows specified in the columns_to_drop and rows_to_drop lists.
         
         Returns:
             DataFrame: The dataset after dropping specified columns and rows
         """
-        result_df = self.dataframe
+        if dataframe is None:
+            result_df = self.dataframe
+        else:
+            result_df = dataframe
         
         # Drop columns
         if self.columns_to_drop:

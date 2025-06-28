@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
 )
 from src.utils import *
 
+
+
 def resource_path(relative_path):
     """ Get the absolute path to a resource, works for dev and packaged apps. """
     if getattr(sys, 'frozen', False): 
@@ -32,6 +34,7 @@ class Ui_delete(object):
         
 
         self.cleaning_logic = None
+        self.dataset_info = None
 
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
@@ -77,6 +80,8 @@ class Ui_delete(object):
         
         self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, None, None, None)
         self.setup_styles()
+
+        self.pushButton.clicked.connect(self.deleting)
         
         MainWindow.setCentralWidget(self.centralwidget)
 
@@ -138,6 +143,32 @@ class Ui_delete(object):
         self.pushButton2.setText(QCoreApplication.translate("MainWindow", u"Back", None))
 
 
+    def toggle_delete_options(self):
+        is_name_delete = self.delete_by_name_radio.isChecked()
+        self.delete_name_input.setEnabled(is_name_delete)
+        self.null_options_group.setEnabled(not is_name_delete)
+
+    def deleting(self):
+        if self.delete_name_input.text() != "" and self.delete_by_name_radio.isChecked():
+            try:
+                text = self.delete_name_input.text()
+                text = text.replace(" ", "").split(",")
+                print(f"[INFO] Deleting columns: {text}")
+                
+                self.cleaning_logic.set_columns_to_drop(text)
+                dataframe = self.dataset_info.get_dataframe()
+                if dataframe is not None:
+                    new_dataframe = self.cleaning_logic.drop_data()
+                print(new_dataframe.columns)
+
+
+
+            except Exception as e:
+                print(f"[Expection] {e}")
+        elif self.null_percentage_input.text() != "" and self.delete_by_null_radio.isChecked():
+            print("hola2")
+
+
     """
 
     FUNCTIONS FOUND IN THE UTILS.PY FILE
@@ -192,7 +223,3 @@ class Ui_delete(object):
             }}
         """)
 
-    def toggle_delete_options(self):
-        is_name_delete = self.delete_by_name_radio.isChecked()
-        self.delete_name_input.setEnabled(is_name_delete)
-        self.null_options_group.setEnabled(not is_name_delete)

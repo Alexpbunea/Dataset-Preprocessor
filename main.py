@@ -198,14 +198,10 @@ class MainController:
                     
                     if hasattr(self.cleaning_ui, 'dataset_info'):
                         self.cleaning_ui.dataset_info = self.dataset_info
+                
                 if hasattr(self.delete_ui, 'cleaning_logic'):
-                #print("hisfiasdh")
                     self.delete_ui.cleaning_logic = self.cleaning_logic
-                    print(self.delete_ui.pushButton)
-                    self.delete_ui.pushButton.clicked.connect(self.delete_ui.cleaning_logic.delete)
-                    #self.delete_ui.cleaning_logic.set_delete_button(self.delete_ui.pushButton)
-                    #print(self.delete_ui.cleaning_logic.delete_button)
-                    #self.delete_ui.pushButton.clicked.connect(self.delete_ui.cleaning_logic.delete())
+                    self.delete_ui.dataset_info = self.dataset_info
                     
                     
 
