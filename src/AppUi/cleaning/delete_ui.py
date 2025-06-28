@@ -154,12 +154,25 @@ class Ui_delete(object):
                 text = self.delete_name_input.text()
                 text = text.replace(" ", "").split(",")
                 print(f"[INFO] Deleting columns: {text}")
+
+                #Here I need to separate between index rows and column names
+                column_names = self.dataset_info.get_general_info()["column_names"]
+                column_names_to_delete = []
+                index_rows_to_delete = []
+                for i in text:
+                    if i in column_names:
+                        column_names_to_delete.append(i)
+                    else:
+                        index_rows_to_delete.append(i)
+
                 
-                self.cleaning_logic.set_columns_to_drop(text)
+                self.cleaning_logic.set_columns_to_drop(column_names_to_delete)
+                self.cleaning_logic.set_rows_to_drop(column_names_to_delete)
                 dataframe = self.dataset_info.get_dataframe()
                 if dataframe is not None:
                     new_dataframe = self.cleaning_logic.drop_data()
                 print(new_dataframe.columns)
+                print(new_dataframe.head(1))
 
 
 

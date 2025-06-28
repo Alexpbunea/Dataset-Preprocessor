@@ -39,8 +39,9 @@ class Utils:
         self.max_cell_text_length = 0
 
 
-    def populate_table(self, lenght = 50, rows = 500, dataset_info = None,  where_to_show =  None):
+    def populate_table(self, lenght=50, rows=500, dataset_info=None, where_to_show=None):
         null_percentages = 0
+
         if dataset_info is not None:
             self.dataset_info = dataset_info
             info = self.dataset_info.get_general_info()
@@ -51,84 +52,84 @@ class Utils:
                 self.table.setColumnCount(0)
                 self.table.setHorizontalHeaderLabels(["No data to display"])
                 return
-        
+
         self.max_cell_text_length = lenght
         columns = None
+
         if self.dataset_info is not None:
             columns = info.get("column_names")
-            
+
             if where_to_show == "preview":
                 pass
             elif where_to_show == "cleaning":
                 null_percentages = self.dataset_info.get_null_percentages()
+                #from pyspark.sql.functions import monotonically_increasing_id, row_number, lit
+                #from pyspark.sql.window import Window
+
+                #df = self.dataframe.withColumn("tmp_id", monotonically_increasing_id())
+                #window = Window.orderBy("tmp_id")
+                #df = df.withColumn("row_index", row_number().over(window)).drop("tmp_id")
+                #self.dataframe = df
             else:
                 pass
-        
+
         spark_rows = self.dataframe.take(rows)
 
-        # Improves performance by disabling updates while populating the table
         self.table.setUpdatesEnabled(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive) 
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
 
         try:
-            
             display_rows = len(spark_rows) + (1 if null_percentages else 0)
             self.table.setRowCount(display_rows)
             self.table.setColumnCount(len(columns))
             self.table.setHorizontalHeaderLabels(columns)
-            
-            # If we have null percentages, add them as the first row
+
             if null_percentages:
                 for j, col in enumerate(columns):
                     percentage = null_percentages.get(col, 0.0)
                     percentage_item = QTableWidgetItem(f"{percentage:.1f}%")
-                    
-                    # Style the percentage cell - highlight higher percentages
+
                     if percentage > 50:
-                        percentage_item.setBackground(QColor(255, 150, 150))  # Light red for high null %
+                        percentage_item.setBackground(QColor(255, 150, 150))
                     elif percentage > 20:
-                        percentage_item.setBackground(QColor(255, 220, 150))  # Light orange for medium null %
-                        
+                        percentage_item.setBackground(QColor(255, 220, 150))
+
                     percentage_item.setToolTip(f"Null percentage: {percentage:.2f}%")
                     self.table.setItem(0, j, percentage_item)
-                
-                # Add a special row header for the percentages row
+
                 self.table.setVerticalHeaderItem(0, QTableWidgetItem("% Nulls"))
-            else:
-                self.table.setVerticalHeaderItem(0, QTableWidgetItem("1"))
-            
-            # Offset for data rows if we have a percentage row
+
             offset = 1 if null_percentages else 0
-            
-            # Fill in the data rows
+
             for i, row in enumerate(spark_rows):
                 for j, col in enumerate(columns):
-                    # Existing data population code, adjusted for offset
                     value = row[col]
                     str_value = str(value) if value is not None else "Null"
-                    
-                    # Truncate long text and add ellipsis
+
                     display_text = str_value
                     if len(str_value) > self.max_cell_text_length:
                         display_text = str_value[:self.max_cell_text_length] + "..."
-                    
+
                     item = QTableWidgetItem(display_text)
-                    
-                    # Set tooltip with full text for truncated cells
+
                     if len(str_value) > self.max_cell_text_length:
                         item.setToolTip(str_value)
-                    
-                    # Use offset to shift data rows down if we have a percentage row
-                    self.table.setItem(i+offset, j, item)
-            
+
+                    self.table.setItem(i + offset, j, item)
+
+            # Añadir encabezados verticales para filas de datos
+            for i in range(len(spark_rows)):
+                row_number = str(i + 1)
+                row_position = i + offset
+                self.table.setVerticalHeaderItem(row_position, QTableWidgetItem(row_number))
+
             total_width = sum(self.table.columnWidth(i) for i in range(self.table.columnCount()))
             self.table.setMinimumSize(total_width + 50, self.table.height())
             self.table.resizeColumnsToContents()
-            
+
         finally:
             self.table.setUpdatesEnabled(True)
             self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-
 
         self.table.setMinimumWidth(
             sum([self.table.columnWidth(i) for i in range(self.table.columnCount())]) + 50
