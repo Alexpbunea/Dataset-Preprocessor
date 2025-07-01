@@ -28,10 +28,6 @@ def resource_path(relative_path):
 
 
 class Ui_cleaning_phase(object):
-    
-    #null_percentages = None
-
-
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():

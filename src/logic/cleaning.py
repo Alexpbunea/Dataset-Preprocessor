@@ -4,6 +4,8 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, count, when, isnan, sum as spark_sum, lit
 from functools import reduce
 from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number
 
 
 class cleaning:
@@ -52,22 +54,12 @@ class cleaning:
         
         # Drop rows based on row indices
         if self.rows_to_drop:
-            # Create a row number column to identify rows
-            #from pyspark.sql.window import Window
-            #from pyspark.sql.functions import row_number
-            pass
-            #result_df = result_df.filter(~col("row_index").isin(self.rows_to_drop))
-            #window = Window.orderBy("dummy")
-            #result_df = result_df.withColumn("dummy", lit(1))
-            #result_df = result_df.withColumn("row_id", row_number().over(window))
-            
-            # Filter out the rows to drop
-            #result_df = result_df.filter(~col("row_id").isin(self.rows_to_drop))
-            
-            # Drop the temporary columns
-            #result_df = result_df.drop("dummy", "row_id")
+            print("hola")
+            w = Window.partitionBy(lit(1)).orderBy(lit(1))
+            result_df = result_df.withColumn("_row_idx", row_number().over(w))
+            result_df = result_df.filter(~result_df._row_idx.isin(self.rows_to_drop)).drop("_row_idx")
         
-        self.dataframe = result_df
+        #self.dataframe = result_df
         return result_df
 
     

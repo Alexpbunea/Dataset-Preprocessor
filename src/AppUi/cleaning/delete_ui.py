@@ -24,6 +24,8 @@ def resource_path(relative_path):
 
 
 class Ui_delete(object):
+    
+    
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():
@@ -148,12 +150,15 @@ class Ui_delete(object):
         self.delete_name_input.setEnabled(is_name_delete)
         self.null_options_group.setEnabled(not is_name_delete)
 
+
+
+
     def deleting(self):
         if self.delete_name_input.text() != "" and self.delete_by_name_radio.isChecked():
             try:
                 text = self.delete_name_input.text()
                 text = text.replace(" ", "").split(",")
-                print(f"[INFO] Deleting columns: {text}")
+                print(f"[INFO] Deleting columns and/or rows: {text}")
 
                 #Here I need to separate between index rows and column names
                 column_names = self.dataset_info.get_general_info()["column_names"]
@@ -165,14 +170,20 @@ class Ui_delete(object):
                     else:
                         index_rows_to_delete.append(i)
 
-                
+                #print(index_rows_to_delete)
                 self.cleaning_logic.set_columns_to_drop(column_names_to_delete)
-                self.cleaning_logic.set_rows_to_drop(column_names_to_delete)
+                self.cleaning_logic.set_rows_to_drop(index_rows_to_delete)
                 dataframe = self.dataset_info.get_dataframe()
                 if dataframe is not None:
                     new_dataframe = self.cleaning_logic.drop_data()
-                print(new_dataframe.columns)
-                print(new_dataframe.head(1))
+                #print(new_dataframe.columns)
+                #print(new_dataframe.head(1))
+                self.dataset_info.set_dataframe(new_dataframe)
+                self.dataset_info.set_general_info()
+                
+                #utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
+                #utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
+
 
 
 
