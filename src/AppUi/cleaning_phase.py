@@ -17,6 +17,7 @@ from pyspark.sql.functions import col, sum, when, isnan
 from functools import reduce
 
 
+
 def resource_path(relative_path):
     """ Get the absolute path to a resource, works for dev and packaged apps. """
     if getattr(sys, 'frozen', False):  
@@ -28,6 +29,15 @@ def resource_path(relative_path):
 
 
 class Ui_cleaning_phase(object):
+    def __init__(self):
+        self.utils = None
+    
+    def set_utils(self, utils):
+        self.utils = utils
+    
+    def get_utils(self):
+        return self.utils
+
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():
@@ -68,7 +78,8 @@ class Ui_cleaning_phase(object):
         self._setup_widget_properties()
         self._setup_layout()
         
-        self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, self.pushButton3, self.table, self.scroll_area)
+        #self.utils = Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, self.pushButton3, self.table, self.scroll_area)
+        self.set_utils(Utils(None, self.centralwidget, self.title_label, self.subtitle_label, self.pushButton, self.pushButton2, self.pushButton3, self.table, self.scroll_area))
         self.setup_styles()
         
         # Connect sort_combo change event to sort_table_by_nulls function
@@ -102,6 +113,8 @@ class Ui_cleaning_phase(object):
         self.pushButton.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.pushButton2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.pushButton3.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    
+    
 
     def _setup_layout(self):
         # Add header
@@ -166,19 +179,23 @@ class Ui_cleaning_phase(object):
             return
 
         sort_option = self.sort_combo.currentText()
-        general_info = self.dataset_info.get_general_info()
+        
 
         try:
             if sort_option == "Columns":
-                self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_original())
+                if self.dataset_info.get_dataframe_sorted_columns() is None:
+                    self.dataset_info.set_dataframe_sorted_columns(self.dataset_info.get_dataframe())
+
+                if self.dataset_info.get_dataframe_sorted_columns() != self.dataset_info.get_dataframe():
+                    self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_columns())
 
             elif sort_option == "Rows":
                 
                 if self.dataset_info.get_dataframe_sorted_rows() is None:
-                    original_df = self.dataset_info.get_dataframe_original()
+                    original_df = self.dataset_info.get_dataframe()
                     df_with_id = original_df.withColumn("_row_id", monotonically_increasing_id())
 
-                    # Usa el row_null_counts original
+                    general_info = self.dataset_info.get_general_info()
                     row_null_counts = general_info["row_null_counts"].withColumn("_row_id", monotonically_increasing_id())
 
                     sorted_df = (

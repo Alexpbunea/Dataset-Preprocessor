@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
     QHeaderView, QScrollArea, QAbstractItemView, QLineEdit, QComboBox, QRadioButton, QGroupBox, QFormLayout # Added new widgets
 )
 from src.utils import *
+from pyspark.sql.functions import col, when, sum as spark_sum
+
 
 
 
@@ -24,6 +26,23 @@ def resource_path(relative_path):
 
 
 class Ui_delete(object):
+    def __init__(self):
+        self.UI_cleaning_phase = None
+        self.utils_cleaning_phase = None
+
+    def set_utils_cleaning_phase(self, utils_cleaning_phase):
+        self.utils_cleaning_phase = utils_cleaning_phase
+    
+    def get_utils_cleaning_phase(self):
+        return self.utils_cleaning_phase
+    
+    def set_UI_cleaning_phase(self, UI_cleaning_phase):
+        print("Holaaa")
+        self.UI_cleaning_phase = UI_cleaning_phase
+    
+    def get_UI_cleaning_phase(self):
+        return self.UI_cleaning_phase
+
     
     
     def setupUi(self, MainWindow):
@@ -59,7 +78,7 @@ class Ui_delete(object):
         self.null_options_layout = QHBoxLayout(self.null_options_group)
         
         self.delete_type_combo = QComboBox(self.null_options_group)
-        self.delete_type_combo.addItems(["Rows", "Columns"])
+        self.delete_type_combo.addItems(["Columns", "Rows"])
         
         self.null_percentage_label_prefix = QLabel("with more than", self.null_options_group)
         self.null_percentage_input = QLineEdit(self.null_options_group)
@@ -158,10 +177,10 @@ class Ui_delete(object):
             try:
                 text = self.delete_name_input.text()
                 text = text.replace(" ", "").split(",")
-                print(f"[INFO] Deleting columns and/or rows: {text}")
+                print(f"[INFO] Deleting columns and/or rows by name or index: {text}")
 
-                #Here I need to separate between index rows and column names
                 column_names = self.dataset_info.get_general_info()["column_names"]
+                
                 column_names_to_delete = []
                 index_rows_to_delete = []
                 for i in text:
@@ -170,27 +189,105 @@ class Ui_delete(object):
                     else:
                         index_rows_to_delete.append(i)
 
-                #print(index_rows_to_delete)
                 self.cleaning_logic.set_columns_to_drop(column_names_to_delete)
                 self.cleaning_logic.set_rows_to_drop(index_rows_to_delete)
+                
                 dataframe = self.dataset_info.get_dataframe()
                 if dataframe is not None:
-                    new_dataframe = self.cleaning_logic.drop_data()
-                #print(new_dataframe.columns)
-                #print(new_dataframe.head(1))
+                    new_dataframe = self.cleaning_logic.drop_data(dataframe)
                 self.dataset_info.set_dataframe(new_dataframe)
                 self.dataset_info.set_general_info()
+
                 
-                #utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
-                #utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
-
-
-
+                #deleting the memorized sorted dataframes in the dataset_info file because they are not valid anymore. They will be recalculated in the cleaning phase.
+                self.dataset_info.set_dataframe_sorted_columns(self.dataset_info.get_dataframe())
+                self.dataset_info.set_dataframe_sorted_rows(None)
+                    
+                
+                if self.get_utils_cleaning_phase():
+                    self.utils_cleaning_phase.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
+                print(f"[SUCCESS] Deleted columns and/or rows by name or index: {text}")
 
             except Exception as e:
-                print(f"[Expection] {e}")
+                print(f"[ERROR] -> [When trying to delete columns and/or rows by name or index] {e}")
+        
+        
         elif self.null_percentage_input.text() != "" and self.delete_by_null_radio.isChecked():
-            print("hola2")
+            
+            if self.delete_type_combo.currentText() == "Rows":    
+                try:
+                    print(f"[INFO] Deleting rows with null % > {threshold}")
+                    threshold_str = self.null_percentage_input.text().replace(",", ".")
+                    threshold = float(threshold_str)
+                    if not (0 <= threshold <= 100):
+                        raise ValueError("Please enter a percentage between 0 and 100.")
+
+                    dataframe = self.dataset_info.get_dataframe()
+                    columns = dataframe.columns
+                    n_cols = len(columns)
+
+                    null_exprs = [when(col(c).isNull(), 1).otherwise(0) for c in columns]
+                    df_with_nulls = dataframe.withColumn("_null_count", sum(expr for expr in null_exprs))
+                    df_with_nulls = df_with_nulls.withColumn("_null_pct", (col("_null_count") / n_cols) * 100)
+
+                    new_dataframe = df_with_nulls.filter(col("_null_pct") <= threshold).drop("_null_count", "_null_pct")
+
+                    self.dataset_info.set_dataframe(new_dataframe)
+                    self.dataset_info.set_general_info()
+
+                    self.dataset_info.set_dataframe_sorted_columns(self.dataset_info.get_dataframe())
+                    self.dataset_info.set_dataframe_sorted_rows(None)
+                    
+                    if self.get_utils_cleaning_phase():
+                        self.utils_cleaning_phase.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
+
+                    print(f"[SUCCESS] Deleted rows with null % > {threshold}")
+
+                except Exception as e:
+                    print(f"[ERROR] -> [When trying to delete Rows by null percentage] {e}")
+            
+            elif self.delete_type_combo.currentText() == "Columns":
+                try:
+                    threshold_str = self.null_percentage_input.text().replace(",", ".")
+                    threshold = float(threshold_str)
+                    if not (0 <= threshold <= 100):
+                        raise ValueError("Please enter a percentage between 0 and 100.")
+                        
+                    null_percentages = self.dataset_info.get_null_percentages()
+                    columns_to_delete = [col for col, perc in null_percentages.items() if perc > threshold]
+
+                    if not columns_to_delete:
+                        raise ValueError("No columns found with null percentage greater than the specified threshold.")
+                    print(f"[INFO] Deleting columns with null % > {threshold}: {columns_to_delete}")
+
+                    # Drop columns using your cleaning logic
+                    self.cleaning_logic.set_columns_to_drop(columns_to_delete)
+                    
+                    dataframe = self.dataset_info.get_dataframe()
+                    if dataframe is not None:
+                        new_dataframe = self.cleaning_logic.drop_data(dataframe)
+                    self.dataset_info.set_dataframe(new_dataframe)
+                    self.dataset_info.set_general_info()
+
+                    self.dataset_info.set_dataframe_sorted_columns(self.dataset_info.get_dataframe())
+                    self.dataset_info.set_dataframe_sorted_rows(None)
+                    
+                    if self.get_utils_cleaning_phase():
+                        self.utils_cleaning_phase.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
+                    print(f"[SUCCESS] Deleted columns with null % > {threshold}: {columns_to_delete}")
+
+
+                except Exception as e:
+                    print(f"[ERROR] -> [When trying to delete Columns by null percentage] {e}")
+
+
+        else:
+            print("[ERROR] No valid input provided for deletion. Please enter valid column names or row indices.")
+
+
+
+
+
 
 
     """

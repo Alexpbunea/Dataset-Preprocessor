@@ -201,7 +201,9 @@ class MainController:
                 
                 if hasattr(self.delete_ui, 'cleaning_logic'):
                     self.delete_ui.cleaning_logic = self.cleaning_logic
-                    self.delete_ui.dataset_info = self.dataset_info
+                    self.delete_ui.dataset_info = self.cleaning_ui.dataset_info
+                    self.delete_ui.set_utils_cleaning_phase(self.cleaning_ui.get_utils())
+
                     
                     
 
