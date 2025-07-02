@@ -343,4 +343,5 @@ class Ui_delete(object):
                 selection-color: black;
             }}
         """)
+        
 

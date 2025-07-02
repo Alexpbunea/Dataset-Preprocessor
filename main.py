@@ -156,7 +156,12 @@ class MainController:
             self.delete_window.hide()
 
     def show_imputation(self):
+        try:
+            self.imputation_ui.set_dataset_info(self.delete_ui.dataset_info)
+        except Exception as e:
+            print(f"[ERROR]: When trying to set dataset info in imputation UI: {e}")
         self.stacked_widget.setCurrentIndex(3)
+        
 
     def show_transformation(self):
         self.stacked_widget.setCurrentIndex(4)
@@ -203,6 +208,10 @@ class MainController:
                     self.delete_ui.cleaning_logic = self.cleaning_logic
                     self.delete_ui.dataset_info = self.cleaning_ui.dataset_info
                     self.delete_ui.set_utils_cleaning_phase(self.cleaning_ui.get_utils())
+                
+                if hasattr(self.imputation_ui, 'set_dataset_info'):
+                    pass
+                    #self.imputation_ui.populate_methods_table()
 
                     
                     
