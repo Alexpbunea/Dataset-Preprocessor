@@ -2,7 +2,7 @@
 
 import os
 import sys
-from PySide6.QtCore import QCoreApplication, Qt
+from PySide6.QtCore import QCoreApplication, Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap # QIcon, QPixmap not used in this specific UI class directly
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QPushButton, QSizePolicy, QVBoxLayout, 
@@ -98,7 +98,7 @@ class Ui_imputation_phase(object):
         self.subtitle_label.setAlignment(Qt.AlignCenter)
         
 
-        self.spark_calculations.setChecked(True)  # Default option
+        self.spark_calculations.setChecked(False)  # Default option
         self.machine_learning.setChecked(False)
         
         
@@ -125,6 +125,12 @@ class Ui_imputation_phase(object):
         button_container = QHBoxLayout()
         button_container.setContentsMargins(0, 0, 0, 0)
         button_container.setSpacing(10)  # Espaciado pequeño entre botones
+
+        #layout
+        self.status_label = QLabel("")
+        self.status_label.setMinimumWidth(200)
+        self.status_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        button_container.addWidget(self.status_label)
         
         # Añadir stretch para empujar los botones a la derecha
         button_container.addStretch()
@@ -146,8 +152,18 @@ class Ui_imputation_phase(object):
 
         if show_spark and self.dataset_info and self.methods_table.rowCount() == 0:
             self.populate_methods_table()
+    
+    def show_status(self, message, color):
+        self.status_label.setText(message)
+        self.status_label.setStyleSheet(f"color: {color}; font-weight: bold;")
+        QTimer.singleShot(5000, lambda: self.status_label.setText(""))
         
     
+
+#--------------------------------------------------------------------------------------------------------------------------------
+    """
+    FOR SPARK CALCULATIONS
+    """
     def populate_methods_table(self):
         self.methods_table.setRowCount(0)
 
@@ -217,8 +233,8 @@ class Ui_imputation_phase(object):
     def set_dataset_info(self, dataset_info):
         self.dataset_info = dataset_info
 
-        if self.spark_calculations.isChecked():
-            self.populate_methods_table()
+        #if self.spark_calculations.isChecked():
+        #    self.populate_methods_table()
 
     def get_selected_methods(self):
         methods = {}
@@ -233,54 +249,67 @@ class Ui_imputation_phase(object):
     
     def apply_imputation_methods(self):
         """Apply the selected imputation methods to the dataset"""
-        try:
-            
-            print(f"[INFO] -> [Trying to substitute null values with the Spark methods]")
-            # Get the selected methods
-            selected_methods = self.get_selected_methods()
-            
-            # Get the current DataFrame
-            df = self.dataset_info.get_dataframe()
-            
-            # Apply each method to its column
-            for column, method in selected_methods.items():
-                if method == "mean":
-                    # Calculate mean
-                    mean_val = df.select(F.mean(F.col(column))).collect()[0][0]
-                    df = df.na.fill({column: mean_val})
-                    
-                elif method == "median":
-                    # Calculate median
-                    quantiles = df.approxQuantile(column, [0.5], 0.0)
-                    median_val = quantiles[0] if quantiles else None
-                    if median_val is not None:
-                        df = df.na.fill({column: median_val})
-                    
-                elif method == "mode":
-                    # Calculate mode
-                    mode_df = (df.groupBy(column)
-                               .count()
-                               .orderBy(F.desc("count"))
-                               .limit(1))
-                    mode_row = mode_df.collect()
-                    mode_val = mode_row[0][0] if mode_row else None
-                    if mode_val is not None:
-                        df = df.na.fill({column: mode_val})
-            
-            
-            df.write.mode("overwrite").option("header", True).csv("./imputed_dataset.csv")  # Save to CSV for debugging
-            self.dataset_info.set_dataframe(df)
-            
-            print(f"[SUCCESS] -> [Substituted null values with the Spark methods]")
-            
-            # Refresh the table to show updated data
-            if self.spark_calculations.isChecked():
-                self.populate_methods_table()
+        if self.spark_calculations.isChecked():
+            try:
                 
-        except Exception as e:
-            # Show error message
-            print(f"[ERROR] -> [When trying to substitute null values with the Spark methods] {e}")
+                print(f"[INFO] -> [Trying to substitute null values with the Spark methods]")
+                # Get the selected methods
+                selected_methods = self.get_selected_methods()
+                
+                # Get the current DataFrame
+                df = self.dataset_info.get_dataframe()
 
+                if all(method == "none" for method in selected_methods.values()):
+                    self.show_status("No Spark imputation method selected: all options are 'None'.", "orange")
+                    print("[ERROR] -> [No Spark imputation method selected: all options are 'None'.]")
+                    return
+                    
+                
+                # Apply each method to its column
+                for column, method in selected_methods.items():
+                    if method == "mean":
+                        # Calculate mean
+                        mean_val = df.select(F.mean(F.col(column))).collect()[0][0]
+                        df = df.na.fill({column: mean_val})
+                        
+                    elif method == "median":
+                        # Calculate median
+                        quantiles = df.approxQuantile(column, [0.5], 0.0)
+                        median_val = quantiles[0] if quantiles else None
+                        if median_val is not None:
+                            df = df.na.fill({column: median_val})
+                        
+                    elif method == "mode":
+                        # Calculate mode
+                        mode_df = (df.groupBy(column)
+                                .count()
+                                .orderBy(F.desc("count"))
+                                .limit(1))
+                        mode_row = mode_df.collect()
+                        mode_val = mode_row[0][0] if mode_row else None
+                        if mode_val is not None:
+                            df = df.na.fill({column: mode_val})
+                
+                
+                #HADOOP !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                #df.write.mode("overwrite").option("header", True).csv("./imputed_dataset.csv")  # Save to CSV for debugging
+                print(df.head(10))
+                self.dataset_info.set_dataframe(df)
+                
+                print(f"[SUCCESS] -> [Substituted null values with the Spark methods]")
+                self.show_status("Imputation applied successfully!", "green")
+                
+                # Refresh the table to show updated data
+                #if self.spark_calculations.isChecked():
+                #    self.populate_methods_table()
+                    
+            except Exception as e:
+                # Show error message
+                print(f"[ERROR] -> [When trying to substitute null values with the Spark methods] {e}")
+                self.show_status("Imputation failed!", "red")
+        
+        elif self.machine_learning.isChecked():
+            print("[INFO] -> [Substituting null values with Artificial Intelligence]")
 
 
 

@@ -159,7 +159,7 @@ class MainController:
         try:
             self.imputation_ui.set_dataset_info(self.delete_ui.dataset_info)
         except Exception as e:
-            print(f"[ERROR]: When trying to set dataset info in imputation UI: {e}")
+            print(f"[ERROR] -> [When trying to set dataset info in imputation UI] {e}")
         self.stacked_widget.setCurrentIndex(3)
         
 
@@ -194,7 +194,7 @@ class MainController:
                 
                 self.cleaning_logic = cleaning(self.dataset_info)
                 
-                print(f"[INFO]: Dataset loaded correctly in Spark: {file_name}")
+                print(f"[INFO] -> [Dataset loaded correctly in Spark] {file_name}")
                 
                 if hasattr(self.preview_ui, 'populate_table'):
                     self.preview_ui.populate_table(self.dataset_info)
@@ -220,7 +220,7 @@ class MainController:
 
 
             except Exception as e:
-                print(f"[ERROR]: When trying to load the dataset with Spark: {e}")
+                print(f"[ERROR] -> [When trying to load the dataset with Spark] {e}")
         else:
             print("[INFO]: No file selected")
         

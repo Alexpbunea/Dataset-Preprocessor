@@ -175,7 +175,7 @@ class Ui_cleaning_phase(object):
         Sort the dataset based on null counts per column or row.
         """
         if not self.dataset_info:
-            print("[INFO] No data available to sort")
+            print("[INFO] -> [No data available to sort]")
             return
 
         sort_option = self.sort_combo.currentText()
@@ -210,10 +210,10 @@ class Ui_cleaning_phase(object):
                 self.dataset_info.set_dataframe(self.dataset_info.get_dataframe_sorted_rows())
 
             self.utils.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
-            print(f"[INFO] Table sorted by {sort_option} based on null counts")
+            print(f"[INFO] -> [Table sorted by {sort_option} based on null counts]")
 
         except Exception as e:
-            print(f"[ERROR] Error sorting table: {e}")
+            print(f"[ERROR] -> [Error sorting table] {e}")
             import traceback
             traceback.print_exc()
 

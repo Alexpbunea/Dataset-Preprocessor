@@ -146,7 +146,7 @@ class Ui_initial_phase(object):
         self.drop_container.style().polish(self.drop_container)
         
         self.file_name = file_path.split('/')[-1]
-        self.file_status.setText(f"Dataset loaded: {self.file_name}")
+        self.file_status.setText(f"Dataset loaded correctly: {self.file_name}")
         self.file_status.setStyleSheet("""
             QLabel {
                 color: #2ecc71;
@@ -169,7 +169,7 @@ class Ui_initial_phase(object):
         self.drop_icon.setPixmap(pixmap)
         self.drop_text.setText("File ready for processing")
 
-        print("Dataset detected:", file_path)
+        print("[INFO] -> [Dataset detected] ", file_path)
 
     def setup_styles(self, title_size=36, subtitle_size=18, button_size=16):
         colors = {
