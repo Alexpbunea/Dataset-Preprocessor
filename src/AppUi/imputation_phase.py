@@ -1,31 +1,53 @@
 # -*- coding: utf-8 -*-
 
-import os
-import sys
+#import os
+#import sys
 from PySide6.QtCore import QCoreApplication, Qt, QTimer
-from PySide6.QtGui import QIcon, QPixmap # QIcon, QPixmap not used in this specific UI class directly
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow, QLabel, QPushButton, QSizePolicy, QVBoxLayout, 
-    QWidget, QHBoxLayout, QFileDialog, QTableWidget, QTableWidgetItem, # Added QTableWidgetItem
+    QWidget, QHBoxLayout, QFileDialog, QTableWidget, QTableWidgetItem, 
     QHeaderView, QScrollArea, QAbstractItemView, QLineEdit, QComboBox, QRadioButton, QGroupBox, QFormLayout, QMessageBox # Added new widgets
 )
 from src.utils import *
+from src.logic.imputation_AI import ImputationAI
 from pyspark.sql.functions import monotonically_increasing_id, col as spark_col
 from pyspark.sql.window import Window
 from pyspark.sql.functions import col, sum, when, isnan
 from functools import reduce
 
-def resource_path(relative_path):
-    """ Get the absolute path to a resource, works for dev and packaged apps. """
-    if getattr(sys, 'frozen', False):  # If running as a PyInstaller bundle
-        base_path = sys._MEIPASS
-    else:  # If running in a normal Python environment
-        base_path = os.path.abspath(".")
-    
-    return os.path.join(base_path, relative_path)
-
 
 class Ui_imputation_phase(object):
+    def __init__(self):
+        self.MainWindow = None
+        self.cleaning_logic = None
+        self.dataset_info = None
+        self.centralwidget = None
+        self.verticalLayout = None
+        self.title_label = None
+        self.subtitle_label = None
+        self.spark_calculations = None
+        self.spark_methods_container = None
+        self.spark_methods_layout = None
+        self.columns_label = None
+        self.methods_table = None
+        self.machine_learning = None
+        self.ai_table_container = None
+        self.ai_table_layout = None
+        self.model_selection_container = None
+        self.model_selection_layout = None
+        self.model_label = None
+        self.model_combo = None
+        self.ai_table = None
+        self.pushButton = None
+        self.pushButton2 = None
+        self.pushButton3 = None
+        self.status_label = None
+        self.utils = None
+
+
+
+
     def setupUi(self, MainWindow):
         self.MainWindow = MainWindow
         if not MainWindow.objectName():
@@ -46,17 +68,11 @@ class Ui_imputation_phase(object):
 
         self.title_label = QLabel("Imputation", self.centralwidget)
         self.subtitle_label = QLabel("Substituting missing values in your dataset with reasonable estimations", self.centralwidget)
-        
 
-
+        #FOR THE SPARK OPTIONS
         self.spark_calculations = QRadioButton("Spark methods:", self.centralwidget)
-
-
-        self.machine_learning = QRadioButton("Artificial intelligence:", self.centralwidget)
-
-
         self.spark_calculations.toggled.connect(self.toggle_imputation_options)
-        self.machine_learning.toggled.connect(self.toggle_imputation_options)
+        
 
         self.spark_methods_container = QWidget(self.centralwidget)
         self.spark_methods_layout = QVBoxLayout(self.spark_methods_container)
@@ -72,7 +88,49 @@ class Ui_imputation_phase(object):
         self.spark_methods_layout.addWidget(self.columns_label)
         self.spark_methods_layout.addWidget(self.methods_table)
 
-        self.verticalLayout.insertWidget(4, self.spark_methods_container)  # Justo después de los radio buttons
+        #FOR THE MACHINE LEARNING OPTIONS
+        self.machine_learning = QRadioButton("Artificial intelligence:", self.centralwidget)
+        self.machine_learning.toggled.connect(self.toggle_imputation_options)
+
+        self.ai_table_container = QWidget(self.centralwidget)
+        self.ai_table_layout = QVBoxLayout(self.ai_table_container)
+        
+        # Add model selection above the table
+        self.model_selection_container = QWidget(self.ai_table_container)
+        self.model_selection_layout = QHBoxLayout(self.model_selection_container)
+        self.model_selection_layout.setContentsMargins(0, 0, 0, 10)  # Add some bottom margin
+        
+        self.model_label = QLabel("Select AI model:", self.model_selection_container)
+        self.model_combo = QComboBox(self.model_selection_container)
+        self.model_combo.addItems(["Linear Regression", "Random Forest", "Decision Tree"])
+        
+        self.model_selection_layout.addWidget(self.model_label)
+        self.model_selection_layout.addWidget(self.model_combo)
+        self.model_selection_layout.addStretch()  # Push to left
+        
+        self.ai_table_layout.addWidget(self.model_selection_container)
+        
+        # Create AI table with specified columns (removed Model column)
+        self.ai_table = QTableWidget(0, 3)
+        self.ai_table.setHorizontalHeaderLabels(["Column", "Use as feature (X)", "Use as target (Y)"])
+        self.ai_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.ai_table.verticalHeader().setVisible(False)
+        self.ai_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        
+        self.ai_table_layout.addWidget(self.ai_table)
+        
+        #self.ai_table_layout.addWidget(self.ai_columns_label)
+        #self.ai_table_layout.addWidget(self.ai_table)
+        
+        
+        # Initially hide both tables
+        #self.spark_methods_container.setVisible(False)
+        #self.ai_table_container.setVisible(False)
+        
+
+        
+        self.verticalLayout.insertWidget(0, self.spark_methods_container)  # Justo después de los radio buttons
+        self.verticalLayout.insertWidget(1, self.ai_table_container)
 
         self.toggle_imputation_options()
 
@@ -117,6 +175,7 @@ class Ui_imputation_phase(object):
         self.verticalLayout.addWidget(self.spark_calculations)
         self.verticalLayout.addWidget(self.machine_learning)
         self.verticalLayout.addWidget(self.spark_methods_container)
+        self.verticalLayout.addWidget(self.ai_table_container)
 
         self.verticalLayout.addStretch(1)
         
@@ -150,8 +209,14 @@ class Ui_imputation_phase(object):
         show_spark = self.spark_calculations.isChecked()
         self.spark_methods_container.setVisible(show_spark)
 
+        show_ai = self.machine_learning.isChecked()
+        self.ai_table_container.setVisible(show_ai)
+
         if show_spark and self.dataset_info and self.methods_table.rowCount() == 0:
             self.populate_methods_table()
+        
+        if show_ai and self.dataset_info and self.ai_table.rowCount() == 0:
+            self.populate_ai_table()
     
     def show_status(self, message, color):
         self.status_label.setText(message)
@@ -198,25 +263,7 @@ class Ui_imputation_phase(object):
             method_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             
             # Simplified styling that matches table cells
-            method_combo.setStyleSheet(f"""
-                QComboBox {{
-                    color: black;
-                    border: none;
-                    background-color: transparent;
-                    padding: 0;
-                    margin: 0;
-                }}
-                QComboBox::drop-down {{
-                    subcontrol-origin: padding;
-                    subcontrol-position: center right;
-                    width: 20px;
-                    border: none;
-                }}
-                QComboBox QAbstractItemView {{
-                    border: 1px solid #cccccc;
-                    color: black;
-                }}
-            """)
+            method_combo.setStyleSheet(self._combo_style())
 
             if 'int' in dtype or 'float' in dtype or 'double' in dtype:
                 method_combo.addItems(["None", "Mean", "Median", "Mode"])
@@ -229,7 +276,47 @@ class Ui_imputation_phase(object):
             # Ensure combo box fills the cell
             self.methods_table.setCellWidget(row, 2, method_combo)
             method_combo.setMinimumHeight(40)
+
+#---------------------------------------------------------------------------------------------------------------------------------
+    """
+    FOR AI CALCULATIONS
+    """
     
+    def populate_ai_table(self):
+        """Populate the AI table with dataset columns and options"""
+        self.ai_table.setRowCount(0)
+        
+        columns = self.dataset_info.get_general_info()['column_names']
+        #dtypes_list = self.dataset_info.get_dataframe().dtypes
+        #dtypes = dict(dtypes_list)
+
+        
+        # Set uniform row heights
+        self.ai_table.verticalHeader().setDefaultSectionSize(40)
+        
+        for col in columns:
+            row = self.ai_table.rowCount()
+            self.ai_table.insertRow(row)
+            
+            # Column name (non-editable)
+            col_item = QTableWidgetItem(col)
+            col_item.setFlags(col_item.flags() & ~Qt.ItemIsEditable)
+            self.ai_table.setItem(row, 0, col_item)
+            
+            # Use as feature (X) - Yes/No
+            feature_combo = QComboBox()
+            feature_combo.addItems(["No", "Yes"])
+            feature_combo.setStyleSheet(self._combo_style())
+            self.ai_table.setCellWidget(row, 1, feature_combo)
+            
+            # Use as target (Y) - Yes/No
+            target_combo = QComboBox()
+            target_combo.addItems(["No", "Yes"])
+            target_combo.setStyleSheet(self._combo_style())
+            self.ai_table.setCellWidget(row, 2, target_combo)
+
+#--------------------------------------------------------------------------------------------------------------------------------
+
     def set_dataset_info(self, dataset_info):
         self.dataset_info = dataset_info
 
@@ -244,9 +331,35 @@ class Ui_imputation_phase(object):
             methods[col] = method_combo.currentText().lower()
         return methods
 
+    @staticmethod
+    def _combo_style():
+        """Style for combo boxes in tables"""
+        return """
+            QComboBox {
+                color: black;
+                border: none;
+                background-color: transparent;
+                padding: 0;
+                margin: 0;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: center right;
+                width: 20px;
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #cccccc;
+                color: black;
+            }
+        """
+
 
     
-    
+#--------------------------------------------------------------------------------------------------------------------------------
+    """
+    FOR APPLYING THE IMPUTATION METHODS
+    """
     def apply_imputation_methods(self):
         """Apply the selected imputation methods to the dataset"""
         if self.spark_calculations.isChecked():
@@ -309,16 +422,69 @@ class Ui_imputation_phase(object):
                 self.show_status("Imputation failed!", "red")
         
         elif self.machine_learning.isChecked():
-            print("[INFO] -> [Substituting null values with Artificial Intelligence]")
+            #print("[INFO] -> [Substituting null values with Artificial Intelligence]")
+            try:
+                print("[INFO] -> [Substituting null values with Artificial Intelligence]")
+                
+                # Get selected model
+                selected_model = self.model_combo.currentText()
+                print(f"[INFO] -> [Selected AI model] {selected_model}")
+                
+                # Get feature and target selections
+                feature_cols = []
+                target_cols = []
+                
+                for row in range(self.ai_table.rowCount()):
+                    col_name = self.ai_table.item(row, 0).text()
+                    feature_combo = self.ai_table.cellWidget(row, 1)
+                    target_combo = self.ai_table.cellWidget(row, 2)
+                    
+                    if feature_combo.currentText() == "Yes":
+                        feature_cols.append(col_name)
+                    if target_combo.currentText() == "Yes":
+                        target_cols.append(col_name)
+                
+                # Validate selections
+                if len(feature_cols) == 0 or len(target_cols) == 0:
+                    self.show_status("Please select at least one feature and one target column", "orange")
+                    print("[ERROR] -> [Please select at least one feature and one target column]")
+                    return
+                
+                if len(target_cols) > 1:
+                    self.show_status("Only one target column can be selected", "red")
+                    print("[ERROR] -> [Only one target column can be selected]")
+                    return
+                
+                print(f"[INFO] -> [Feature columns] {feature_cols}")
+                print(f"[INFO] -> [Target column] {target_cols[0]}")
+
+                ai_imputer = ImputationAI(self.dataset_info)
+
+                # Train the model
+                if ai_imputer.train_model(feature_cols, target_cols[0], selected_model):
+                    # Apply imputation
+                    if ai_imputer.impute_missing_values():
+                        self.show_status("AI imputation applied successfully!", "green")
+                        print(f"[SUCCESS] -> [AI imputation applied with {selected_model}]")
+                    else:
+                        self.show_status("AI imputation failed during prediction!", "red")
+                else:
+                    self.show_status("AI model training failed!", "red")
+                
+            except Exception as e:
+                print(f"[ERROR] -> [AI imputation failed] {e}")
+                self.show_status("AI imputation failed!", "red")
 
 
 
 
 
 
+    """
 
+    FUNCTIONS FOUND IN THE UTILS.PY FILE
 
-
+    """
     def setup_styles(self, title_size=36, subtitle_size=18, button_size=4):
         self.centralwidget, title_style, subtitle_style, button_style, button_style_back, table_style, _, controls_style_str = self.utils.setup_styles(title_size, subtitle_size, button_size)
 
@@ -334,6 +500,9 @@ class Ui_imputation_phase(object):
         self.pushButton2.setStyleSheet(button_style_back)
         self.pushButton3.setStyleSheet(button_style)
         self.methods_table.setStyleSheet(table_style)
+        self.ai_table.setStyleSheet(table_style)
+        #self.model_combo.setStyleSheet(self._combo_style())
+        
         # table_style = f"""
         #     QTableWidget {{
         #         font-size: {max(10, int(button_size * 0.8))}px;
@@ -353,8 +522,34 @@ class Ui_imputation_phase(object):
                 font-size: {max(12, int(button_size * 0.9))}px;
             }}
         """
+        self.model_combo.setStyleSheet(f"""
+            QComboBox {{
+                color: black;
+                background-color: white;
+                border: 1px solid #cccccc;
+                border-radius: 3px;
+                padding: 5px;
+                font-size: {button_size}px;
+            }}
+            QComboBox::drop-down {{
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                width: 20px;
+                border-left: 1px solid #cccccc;
+            }}
+            QComboBox::down-arrow {{
+                image: url(down_arrow.png);  /* opcional, si tienes un ícono */
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: white;
+                color: black;
+                selection-background-color: #e0e0e0;
+                selection-color: black;
+            }}
+        """)
 
         self.columns_label.setStyleSheet(label_style)
+        #self.ai_columns_label.setStyleSheet(label_style)
         #self.methods_table.setStyleSheet(table_style)
 
 

@@ -172,3 +172,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+# My personal additions
+/saved_models
+/imputed_dataset.csv
