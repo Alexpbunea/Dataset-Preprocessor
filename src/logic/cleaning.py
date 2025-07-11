@@ -54,7 +54,6 @@ class cleaning:
         
         # Drop rows based on row indices
         if self.rows_to_drop:
-            print("hola")
             w = Window.partitionBy(lit(1)).orderBy(lit(1))
             result_df = result_df.withColumn("_row_idx", row_number().over(w))
             result_df = result_df.filter(~result_df._row_idx.isin(self.rows_to_drop)).drop("_row_idx")

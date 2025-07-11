@@ -205,6 +205,7 @@ class Ui_delete(object):
                     
                 
                 if self.get_utils_cleaning_phase():
+                    self.MainWindow.hide()
                     self.utils_cleaning_phase.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
                 print(f"[SUCCESS] Deleted columns and/or rows by name or index: {text}")
 

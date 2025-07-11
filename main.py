@@ -18,6 +18,7 @@ from src.AppUi.data_splitting_phase import *
 from src.AppUi.comparison_phase import *
 from src.AppUi.final_window import *
 from src.utils import *
+from src.logic.transformation import Transformation
 
 
 """
@@ -47,10 +48,10 @@ class MainController:
         
         self.cleaning_window = QMainWindow()
         self.delete_window = QMainWindow()
-        
-        
-        self.imputation_window = QMainWindow()
+
         self.transformation_window = QMainWindow()
+        self.imputation_window = QMainWindow()
+
         self.data_splitting_window = QMainWindow()
         self.comparison_window = QMainWindow()
         self.final_window = QMainWindow()
@@ -58,12 +59,10 @@ class MainController:
         # Creating the instances of the UI classes
         self.initial_ui = Ui_initial_phase()
         self.preview_ui = Ui_preview_phase()
-        
         self.cleaning_ui = Ui_cleaning_phase()
         self.delete_ui = Ui_delete()
-
-        self.imputation_ui = Ui_imputation_phase()
         self.transformation_ui = Ui_transformation_phase()
+        self.imputation_ui = Ui_imputation_phase()
         self.data_splitting_ui = Ui_data_phase()
         self.comparison_ui = Ui_comparison_phase()
         self.final_ui = Ui_final_window()
@@ -74,8 +73,8 @@ class MainController:
         self.cleaning_ui.setupUi(self.cleaning_window)
         self.delete_ui.setupUi(self.delete_window)
         self.delete_window.hide()
-        self.imputation_ui.setupUi(self.imputation_window)
         self.transformation_ui.setupUi(self.transformation_window)
+        self.imputation_ui.setupUi(self.imputation_window)
         self.data_splitting_ui.setupUi(self.data_splitting_window)
         self.comparison_ui.setupUi(self.comparison_window)
         self.final_ui.setupUi(self.final_window)
@@ -84,8 +83,8 @@ class MainController:
         self.stacked_widget.addWidget(self.initial_window)
         self.stacked_widget.addWidget(self.preview_window)
         self.stacked_widget.addWidget(self.cleaning_window)
-        self.stacked_widget.addWidget(self.imputation_window)
         self.stacked_widget.addWidget(self.transformation_window)
+        self.stacked_widget.addWidget(self.imputation_window)
         self.stacked_widget.addWidget(self.data_splitting_window)
         self.stacked_widget.addWidget(self.comparison_window)
         self.stacked_widget.addWidget(self.final_window)
@@ -98,26 +97,22 @@ class MainController:
         self.preview_ui.pushButton2.clicked.connect(self.show_initial)
 
 
-        self.cleaning_ui.pushButton.clicked.connect(self.show_imputation)
+        self.cleaning_ui.pushButton.clicked.connect(self.show_transformation)
         self.cleaning_ui.pushButton2.clicked.connect(self.show_preview)
         self.cleaning_ui.pushButton3.clicked.connect(lambda: self.show_delete(True))
         
         self.delete_ui.pushButton2.clicked.connect(lambda: self.show_delete(False))
-        
-        #if self.delete_ui.cleaning_logic is not None:
-        #    print(self.delete_ui.cleaning_logic)
-        #    self.delete_ui.pushButton.clicked.connect(self.delete_ui.cleaning_logic.delete)
-        
+
+
+        self.transformation_ui.pushButton.clicked.connect(self.show_imputation)
+        self.transformation_ui.pushButton2.clicked.connect(self.show_cleaning)
+
+        self.imputation_ui.pushButton.clicked.connect(self.show_data_splitting)
+        self.imputation_ui.pushButton2.clicked.connect(self.show_transformation)
         
 
-        self.imputation_ui.pushButton.clicked.connect(self.show_transformation)
-        self.imputation_ui.pushButton2.clicked.connect(self.show_cleaning)
-        
-        self.transformation_ui.pushButton.clicked.connect(self.show_data_splitting)
-        self.transformation_ui.pushButton2.clicked.connect(self.show_imputation)
-        
         self.data_splitting_ui.pushButton.clicked.connect(self.show_comparison)
-        self.data_splitting_ui.pushButton2.clicked.connect(self.show_transformation)
+        self.data_splitting_ui.pushButton2.clicked.connect(self.show_imputation)
         
         self.comparison_ui.pushButton.clicked.connect(self.show_final)
         self.comparison_ui.pushButton2.clicked.connect(self.show_data_splitting)
@@ -155,16 +150,24 @@ class MainController:
         else:
             self.delete_window.hide()
 
-    def show_imputation(self):
+
+    def show_transformation(self):
         try:
-            self.imputation_ui.set_dataset_info(self.delete_ui.dataset_info)
+            self.transformation_ui.set_dataset_info(self.delete_ui.dataset_info)
         except Exception as e:
             print(f"[ERROR] -> [When trying to set dataset info in imputation UI] {e}")
         self.stacked_widget.setCurrentIndex(3)
+
+
+    def show_imputation(self):
+        try:
+            self.imputation_ui.set_dataset_info(self.transformation_ui.dataset_info)
+        except Exception as e:
+            print(f"[ERROR] -> [When trying to set dataset info in imputation UI] {e}")
+        self.stacked_widget.setCurrentIndex(4)
         
 
-    def show_transformation(self):
-        self.stacked_widget.setCurrentIndex(4)
+
 
     def show_data_splitting(self):
         self.stacked_widget.setCurrentIndex(5)
@@ -208,14 +211,11 @@ class MainController:
                     self.delete_ui.cleaning_logic = self.cleaning_logic
                     self.delete_ui.dataset_info = self.cleaning_ui.dataset_info
                     self.delete_ui.set_utils_cleaning_phase(self.cleaning_ui.get_utils())
-                
+
+                if hasattr(self.transformation_ui, 'set_dataset_info'):
+                    pass
                 if hasattr(self.imputation_ui, 'set_dataset_info'):
                     pass
-                    #self.imputation_ui.populate_methods_table()
-
-                    
-                    
-
 
 
 

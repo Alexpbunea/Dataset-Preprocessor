@@ -422,7 +422,6 @@ class Ui_imputation_phase(object):
                 self.show_status("Imputation failed!", "red")
         
         elif self.machine_learning.isChecked():
-            #print("[INFO] -> [Substituting null values with Artificial Intelligence]")
             try:
                 print("[INFO] -> [Substituting null values with Artificial Intelligence]")
                 
@@ -501,21 +500,7 @@ class Ui_imputation_phase(object):
         self.pushButton3.setStyleSheet(button_style)
         self.methods_table.setStyleSheet(table_style)
         self.ai_table.setStyleSheet(table_style)
-        #self.model_combo.setStyleSheet(self._combo_style())
-        
-        # table_style = f"""
-        #     QTableWidget {{
-        #         font-size: {max(10, int(button_size * 0.8))}px;
-        #         gridline-color: #d0d0d0;
-        #         background-color: white;
-        #     }}
-        #     QHeaderView::section {{
-        #         background-color: #0078d7;
-        #         color: white;
-        #         padding: 4px;
-        #         font-weight: bold;
-        #     }}
-        # """
+
         label_style = f"""
             QLabel {{
                 color: #333333;
