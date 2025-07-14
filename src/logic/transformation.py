@@ -233,9 +233,12 @@ class Transformation:
                 try:
                     # Preserve original null information
                     null_condition = F.col(col_name).isNull()
-
+                    
+                    #self.dataframe = self.dataframe.filter(col(col_name).isNotNull())  # Ensure column exists
                     # Ensure the column is numeric
                     self.dataframe = self.dataframe.withColumn(col_name, F.col(col_name).cast("double"))
+                    print(f"[DEBUG] -> Original column values for {col_name}:")
+                    self.dataframe.select(col_name).show(10)
 
                     # Create vector assembler for single column
                     assembler = VectorAssembler(
@@ -244,13 +247,16 @@ class Transformation:
                         handleInvalid="keep"  # Keep nulls as nulls in the vector
                     )
                     vector_df = assembler.transform(self.dataframe)
+                    print(f"[DEBUG] -> Vector column:")
+                    vector_df.select(f"{col_name}_vector").show(10)
+                    vector_df.filter(F.col(f"{col_name}_vector").isNull()).select(f"{col_name}_vector").show(10)
 
                     # Apply scaling based on method
                     if scaling_method == "StandardScaler":
                         scaler = StandardScaler(
                             inputCol=f"{col_name}_vector",
                             outputCol=f"{col_name}_scaled",
-                            withMean=True,
+                            withMean=False,
                             withStd=True
                         )
                     elif scaling_method == "MinMaxScaler":
@@ -268,8 +274,12 @@ class Transformation:
                         continue
 
                     # Fit and transform
-                    scaler_model = scaler.fit(vector_df)
+                    fit_df = vector_df.filter(F.col(f"{col_name}_vector").isNotNull())
+                    scaler_model = scaler.fit(fit_df)
                     scaled_df = scaler_model.transform(vector_df)
+
+                    print(f"[DEBUG] -> Scaled vector column:")
+                    scaled_df.select(f"{col_name}_scaled").show(10)
 
                     # Extract scaled values
                     from pyspark.ml.functions import vector_to_array
@@ -279,6 +289,8 @@ class Transformation:
                         f"{col_name}_array",
                         vector_to_array(F.col(f"{col_name}_scaled"))
                     )
+                    print(f"[DEBUG] -> Array column:")
+                    scaled_df.select(f"{col_name}_array").show(10)
 
                     # Step 2: Extract the first element of the array
                     scaled_df = scaled_df.withColumn(
@@ -286,7 +298,9 @@ class Transformation:
                         F.col(f"{col_name}_array").getItem(0)
                     )
 
-                    # Step 3: Handle both original nulls and generated NaNs
+                    # Step 3: Handle both original nulls and generated NaNs with debugging
+                    print(f"[DEBUG] -> Checking scaled values for column: {col_name}")
+                    scaled_df.select(f"{col_name}_scaled_value").show(30)  # Show first 5 values
                     scaled_df = scaled_df.withColumn(
                         col_name,
                         F.when(null_condition, None)  # Preserve original nulls

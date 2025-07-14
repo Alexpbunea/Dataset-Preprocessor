@@ -396,6 +396,8 @@ class Ui_transformation_phase(object):
             # Update dataset_info with transformed dataframe
             print(scaling_config)
             print(self.transformer.dataframe.head(10))
+            print()
+            print(self.dataset_info.get_dataframe().head(10))
             self.dataset_info.set_dataframe(self.transformer.dataframe)
 
             self.show_status("Feature scaling applied successfully!", "green")

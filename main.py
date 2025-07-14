@@ -170,9 +170,17 @@ class MainController:
 
 
     def show_data_splitting(self):
+        try:
+            self.data_splitting_ui.set_dataset_info(self.imputation_ui.dataset_info)
+        except Exception as e:
+            print(f"[ERROR] -> [When trying to set dataset info in data splitting UI] {e}")
         self.stacked_widget.setCurrentIndex(5)
 
     def show_comparison(self):
+        try:
+            self.comparison_ui.set_dataset_info(self.data_splitting_ui.dataset_info)
+        except Exception as e:
+            print(f"[ERROR] -> [When trying to set dataset info in data comparison UI] {e}")
         self.stacked_widget.setCurrentIndex(6)
 
     def show_final(self):

@@ -31,6 +31,10 @@ class DatasetInfo:
 
         self.dataframe_sorted_columns = None
         self.dataframe_sorted_rows = None
+
+        self.train_df = None
+        self.val_df = None
+        self.test_df = None
         
     
     def set_dataframe(self, dataframe):
@@ -61,6 +65,27 @@ class DatasetInfo:
     
     def get_dataframe_sorted_rows(self):
         return self.dataframe_sorted_rows
+    
+
+    def set_train_df(self, dataframe):
+        self.train_df = dataframe
+    
+    def get_train_df(self):
+        return self.train_df
+    
+
+    def set_val_df(self, dataframe):
+        self.val_df = dataframe
+
+    def get_val_df(self):
+        return self.val_df
+    
+    
+    def set_test_df(self, dataframe):
+        self.test_df = dataframe
+    
+    def get_test_df(self):
+        return self.test_df
         
         
     
