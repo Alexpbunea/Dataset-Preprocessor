@@ -346,3 +346,60 @@ class Utils:
         return self.centralwidget, title_style, subtitle_style, button_style, button_style_back, table_style, self.scroll_area, controls_style
        # self.pushButton2.setStyleSheet(button_style_back)
         #self.table.setStyleSheet(table_style)
+
+    @staticmethod
+    def save_dataframe_as_csv(dataframe, output_path="logs/dataset_cleaned", use_spark_first=True):
+        """
+        Save a PySpark DataFrame as CSV with fallback to Pandas if Hadoop/HDFS is not available.
+        
+        Args:
+            dataframe: PySpark DataFrame to save
+            output_path: Path where to save the CSV (without .csv extension for Spark, with for Pandas)
+            use_spark_first: Whether to try PySpark first (default: True)
+        
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        import os
+        
+        # Ensure logs directory exists
+        os.makedirs("logs", exist_ok=True)
+        
+        if use_spark_first:
+            try:
+                # Try PySpark native CSV export first
+                print("[INFO] Attempting to save using PySpark...")
+                dataframe.coalesce(1).write.mode("overwrite").option("header", "true").csv(output_path)
+                print(f"[SUCCESS] Dataset saved using PySpark to: {output_path}")
+                return True
+                
+            except Exception as spark_error:
+                print(f"[WARNING] PySpark CSV export failed: {spark_error}")
+                print("[INFO] Falling back to Pandas CSV export...")
+                
+                try:
+                    # Fallback to Pandas CSV export
+                    pandas_df = dataframe.toPandas()
+                    csv_file_path = f"{output_path}.csv"
+                    pandas_df.to_csv(csv_file_path, index=False)
+                    print(f"[SUCCESS] Dataset saved using Pandas to: {csv_file_path}")
+                    return True
+                    
+                except Exception as pandas_error:
+                    print(f"[ERROR] Both PySpark and Pandas CSV export failed!")
+                    print(f"PySpark error: {spark_error}")
+                    print(f"Pandas error: {pandas_error}")
+                    return False
+        else:
+            try:
+                # Use Pandas directly
+                print("[INFO] Saving using Pandas...")
+                pandas_df = dataframe.toPandas()
+                csv_file_path = f"{output_path}.csv"
+                pandas_df.to_csv(csv_file_path, index=False)
+                print(f"[SUCCESS] Dataset saved using Pandas to: {csv_file_path}")
+                return True
+                
+            except Exception as pandas_error:
+                print(f"[ERROR] Pandas CSV export failed: {pandas_error}")
+                return False

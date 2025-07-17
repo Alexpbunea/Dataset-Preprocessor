@@ -261,6 +261,7 @@ class Ui_data_phase(object):
             splits = self._perform_data_split(config)
             if splits:
                 self._save_splits(splits)
+                self._save_splits_to_csv(splits)
                 self._log_split_results(splits)
                 self.show_status("Data splitting applied successfully!", "green")
 
@@ -325,6 +326,32 @@ class Ui_data_phase(object):
         self.dataset_info.train_df = train_df
         self.dataset_info.val_df = val_df
         self.dataset_info.test_df = test_df
+
+    def _save_splits_to_csv(self, splits):
+        """Save train, validation, and test splits as CSV files"""
+        try:
+            train_df, val_df, test_df = splits
+            
+            print("[INFO] -> Saving data splits to CSV files...")
+            
+            # Save train split
+            Utils.save_dataframe_as_csv(train_df, "logs/dataset_splitted/train")
+            print("[INFO] -> Train split saved successfully")
+            
+            # Save validation split (if not empty)
+            if val_df.count() > 0:
+                Utils.save_dataframe_as_csv(val_df, "logs/dataset_splitted/validation")
+                print("[INFO] -> Validation split saved successfully")
+            
+            # Save test split
+            Utils.save_dataframe_as_csv(test_df, "logs/dataset_splitted/test")
+            print("[INFO] -> Test split saved successfully")
+            
+            print("[SUCCESS] -> All data splits saved to logs folder")
+            
+        except Exception as e:
+            print(f"[WARNING] -> Failed to save splits to CSV: {e}")
+            # Don't fail the entire operation if CSV saving fails
 
     def _log_split_results(self, splits):
         """Log the results of the splitting operation"""

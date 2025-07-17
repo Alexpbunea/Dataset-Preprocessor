@@ -391,6 +391,9 @@ class Ui_transformation_phase(object):
             self.transformer.apply_binary_transformation(columns_config)
             self._update_dataset_info()
             
+            # Save transformed dataset to logs folder with fallback support
+            Utils.save_dataframe_as_csv(self.transformer.dataframe, "logs/dataset_transformed/binary")
+            
             selected_columns = [k for k, v in columns_config.items() if v]
             self.show_status("Binary conversion applied successfully!", "green")
             print(f"[INFO] -> Binary conversion completed for: {selected_columns}")
@@ -413,6 +416,9 @@ class Ui_transformation_phase(object):
             self.transformer.apply_categorical_transformation(encoding_config)
             self._update_dataset_info()
             
+            # Save transformed dataset to logs folder with fallback support
+            Utils.save_dataframe_as_csv(self.transformer.dataframe, "logs/dataset_transformed/categorical")
+            
             self.show_status("Categorical encoding applied successfully!", "green")
             print(f"[INFO] -> Categorical encoding completed: {encoding_config}")
 
@@ -433,6 +439,9 @@ class Ui_transformation_phase(object):
             # Apply transformation and update dataset
             self.transformer.apply_numerical_transformation(scaling_config)
             self._update_dataset_info()
+            
+            # Save transformed dataset to logs folder with fallback support
+            Utils.save_dataframe_as_csv(self.transformer.dataframe, "logs/dataset_transformed/scaling")
             
             self.show_status("Feature scaling applied successfully!", "green")
             print(f"[INFO] -> Feature scaling completed: {scaling_config}")

@@ -440,6 +440,9 @@ class Ui_imputation_phase(object):
             # Update dataset
             self.dataset_info.set_dataframe(df)
             
+            # Save imputed dataset to logs folder with fallback support
+            Utils.save_dataframe_as_csv(df, "logs/dataset_imputed/spark")
+            
             print("[SUCCESS] -> Substituted null values with Spark methods")
             self.show_status("Imputation applied successfully!", "green")
             
@@ -497,6 +500,9 @@ class Ui_imputation_phase(object):
             
             if ai_imputer.train_model(feature_cols, target_cols[0], selected_model):
                 if ai_imputer.impute_missing_values():
+                    # Save AI imputed dataset to logs folder with fallback support
+                    Utils.save_dataframe_as_csv(ai_imputer.dataset_info.get_dataframe(), "logs/dataset_imputed/AI")
+                    
                     self.show_status("AI imputation applied successfully!", "green")
                     print(f"[SUCCESS] -> AI imputation applied with {selected_model}")
                 else:

@@ -202,6 +202,9 @@ class Ui_delete(object):
                 #deleting the memorized sorted dataframes in the dataset_info file because they are not valid anymore. They will be recalculated in the cleaning phase.
                 self.dataset_info.set_dataframe_sorted_columns(self.dataset_info.get_dataframe())
                 self.dataset_info.set_dataframe_sorted_rows(None)
+                
+                # Save cleaned dataset to logs folder with fallback support
+                Utils.save_dataframe_as_csv(new_dataframe, "logs/dataset_cleaned")
                     
                 
                 if self.get_utils_cleaning_phase():
@@ -239,6 +242,9 @@ class Ui_delete(object):
                     self.dataset_info.set_dataframe_sorted_columns(self.dataset_info.get_dataframe())
                     self.dataset_info.set_dataframe_sorted_rows(None)
                     
+                    # Save cleaned dataset to logs folder with fallback support
+                    Utils.save_dataframe_as_csv(new_dataframe, "logs/dataset_cleaned")
+                    
                     if self.get_utils_cleaning_phase():
                         self.utils_cleaning_phase.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
 
@@ -272,6 +278,9 @@ class Ui_delete(object):
 
                     self.dataset_info.set_dataframe_sorted_columns(self.dataset_info.get_dataframe())
                     self.dataset_info.set_dataframe_sorted_rows(None)
+                    
+                    # Save cleaned dataset to logs folder with fallback support
+                    Utils.save_dataframe_as_csv(new_dataframe, "logs/dataset_cleaned")
                     
                     if self.get_utils_cleaning_phase():
                         self.utils_cleaning_phase.populate_table(50, 200, dataset_info=self.dataset_info, where_to_show="cleaning")
